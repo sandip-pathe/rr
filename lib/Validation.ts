@@ -61,3 +61,13 @@ export const EditFormValidation = z.object({
     .refine((phone) => /^\+\d{10,15}$/.test(phone), "Invalid phone number"),
 });
 
+
+export const AMAAskFormValidation = z.object({
+  question: z.string()
+    .min(2, "Question must be at least 2 characters.")
+    .max(250, "Question must be at most 50 characters."),
+  description: z.string()
+    .min(2, "Description must be at least 2 characters.")
+  
+});
+

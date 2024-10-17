@@ -60,7 +60,7 @@ const ResearchWork = ({ researchItems, questions, answers }: ActivityProps) => {
                     >
                       <Avatar className="w-5 h-5">
                         <AvatarImage />
-                        <AvatarFallback>{item.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>CN</AvatarFallback>
                       </Avatar>
                       <p>{item}</p>
                     </span>

@@ -17,7 +17,7 @@ export default function Home() {
             alt="logo"
             className="mb-12 h-10 w-fit"
           />
-          <ExampleComponent />
+          <LoginForm />
           <div className="text-14-regular mt-10 flex justify-between">
             <Link href="/auth/register" className="text-green-500">
               Register

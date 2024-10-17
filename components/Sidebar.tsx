@@ -64,7 +64,7 @@ const links = [
     label: "Me",
   },
   {
-    path: "/dashboard/community",
+    path: "/dashboard/ama",
     icon: (isActive: boolean) => (
       <LuMessagesSquare
         className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}

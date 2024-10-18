@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 interface User {
@@ -19,31 +18,36 @@ interface User {
   name: string;
   role: "mentor" | "user";
   imageUrl?: string; // Optional image URL
+  designation?: string;
 }
 
 const users: User[] = [
   {
     id: "1",
-    name: "Dr. John Doe",
+    name: "Manoj Suryawanshi",
+    designation: "Assistant Professor",
     role: "mentor",
     imageUrl: "https://via.placeholder.com/150",
   },
   {
     id: "2",
-    name: "Jane Smith",
+    name: "Sagar Shinde",
+    designation: "BE Student",
     role: "user",
     imageUrl: "https://via.placeholder.com/150",
   },
   {
     id: "3",
-    name: "Alice Walker",
+    name: "Dr. Nayana Mahajan",
+    designation: "Associate Professor",
     role: "mentor",
     imageUrl: "https://via.placeholder.com/150",
   },
   {
     id: "4",
-    name: "Tom Gray",
+    name: "Soham Karulkar",
     role: "user",
+    designation: "SE Student",
     imageUrl: "https://via.placeholder.com/150",
   },
   // Add more users as needed
@@ -76,7 +80,7 @@ const PeopleCards = () => {
                 )}
               </Avatar>
               <CardTitle className="text-lg">{user.name}</CardTitle>
-              <p className="text-sm ">Designation</p>
+              <p className="text-sm ">{user.designation}</p>
             </CardHeader>
             <CardContent>
               <p>

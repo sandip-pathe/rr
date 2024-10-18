@@ -3,6 +3,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { AvatarFallback } from "@radix-ui/react-avatar";
+import { FaReply, FaShare, FaCommentAlt } from "react-icons/fa"; // Import icons
+import Spiner from "@/components/Spiner";
 
 interface Question {
   id: number;
@@ -25,7 +37,7 @@ const AMA = () => {
       title:
         "How to enhance collaboration between academia and industry in research?",
       content:
-        "What are the best practices for fostering collaboration between academic researchers and industries for innovative projects?",
+        "Hey everyone! I’m looking for some advice on navigating serious relationships as a spicy creator, and I wanted to share my journey. Few months ago I met someone who I really clicked with—great conversations, lots of laughter, and a genuine connection. However, once I revealed my work, things got a bit complicated. He was initially intrigued but soon became hesitant. We had an honest conversation about it, and I explained how my job empowers me and doesn’t define my worth. I thought we were on the same page, but I could see he was still struggling with the idea. After a few dates, it became clear that while he liked me, he was unsure if he could fully accept my lifestyle. It was tough because I really liked him, but I knew I needed someone who could embrace all of me.",
       author: "Dr. Smith",
       created_at: "2024-10-01",
       answers: [
@@ -102,50 +114,72 @@ const AMA = () => {
     router.push("ama/ask");
   };
 
+  const handleOpenQuestion = (id: number) => {
+    router.push(`ama/${id}`);
+  };
+
   return (
     <Layout>
-      <div className="container mx-auto mt-10 p-6">
-        <h1 className="text-3xl font-bold mb-4">Ask Me Anything (AMA)</h1>
-        <div className="mb-6">
-          <Button
-            className="text-blue-500 hover:underline"
-            onClick={handleAskPage}
-          >
-            Ask a New Question
-          </Button>
-        </div>
-
-        {questions.length > 0 ? (
-          questions.map((question) => (
-            <div
-              key={question.id}
-              className="border p-4 mb-4 rounded-lg bg-gray-800 text-white"
+      <div className="flex flex-row">
+        <div className="w-2/3 ml-10 mt-5 p-6">
+          <h1 className="text-2xl font-bold mb-4">Ask Me Anything (AMA)</h1>
+          <div className="mb-6">
+            <Button
+              className="text-blue-700 hover:underline"
+              onClick={handleAskPage}
             >
-              <h2 className="text-xl font-semibold">{question.title}</h2>
-              <p className="mt-2 text-sm text-gray-300">
-                By {question.author} on{" "}
-                {new Date(question.created_at).toLocaleDateString()}
-              </p>
-              <p className="mt-4">{question.content}</p>
+              Ask a New Question
+            </Button>
+          </div>
 
-              {question.answers.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-lg font-semibold">Answers:</h3>
-                  {question.answers.map((answer, index) => (
-                    <div key={index} className="mt-2 border-t pt-2">
-                      <p>{answer.content}</p>
-                      <p className="text-sm text-gray-400">
-                        By {answer.author}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))
-        ) : (
-          <p>No questions yet. Be the first to ask!</p>
-        )}
+          {questions.length > 0 ? (
+            questions.map((question) => (
+              <div
+                className="my-10 hover:bg-gray-700 hover:cursor-pointer"
+                onClick={() => handleOpenQuestion(question.id)}
+              >
+                <CardHeader className="p-0 flex flex-row items-center gap-4 justify-start">
+                  <Avatar className="h-8 w-8 bg-gray-800 overflow-clip">
+                    <AvatarImage
+                      src="https://placehold.co/400"
+                      className="overflow-auto "
+                    />
+                    <AvatarFallback>CN</AvatarFallback>
+                  </Avatar>
+                  <CardTitle className="font-medium text-base text-gray-100">
+                    {question.author}
+                  </CardTitle>
+                  <CardDescription className="text-gray-500 text-sm">
+                    {"• "}
+                    {new Date(question.created_at).toLocaleDateString()}
+                  </CardDescription>
+                </CardHeader>
+                <CardTitle className="py-2 text-xl font-medium">
+                  {question.title}
+                </CardTitle>
+                <CardContent className="pb-2 px-0">
+                  <p className="text-white text-sm font-normal line-clamp-3">
+                    {question.content}
+                  </p>
+                </CardContent>
+                <CardFooter className="flex space-x-4 p-0 text-gray-400 text-sm">
+                  <button className="flex items-center gap-2">
+                    <FaReply /> Reply
+                  </button>
+                  <button className="flex items-center gap-2">
+                    <FaShare /> Share
+                  </button>
+                  <button className="flex items-center gap-2">
+                    <FaCommentAlt />
+                  </button>
+                </CardFooter>
+              </div>
+            ))
+          ) : (
+            <Spiner />
+          )}
+        </div>
+        <div className="w-1/3"></div>
       </div>
     </Layout>
   );

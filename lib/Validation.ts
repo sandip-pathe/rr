@@ -67,7 +67,5 @@ export const AMAAskFormValidation = z.object({
     .min(2, "Question must be at least 2 characters.")
     .max(250, "Question must be at most 50 characters."),
   description: z.string()
-    .min(2, "Description must be at least 2 characters.")
-  
 });
 

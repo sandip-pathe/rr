@@ -38,19 +38,19 @@ interface UserProfile {
 }
 
 const userProfile: UserProfile = {
-  name: "Akhil Masurkar",
-  degree: "Master of Engineering",
+  name: "Manoj Suryawanshi",
+  degree: "ME (Etrx & Telecomm),University of Mumbai 2015",
   position: "Assistant Professor at Vidyalankar Institute of Technology",
   institution: "Vidyalankar Institute of Technology",
   location: "Mumbai, India",
   researchInterestScore: 3.4,
   citations: 4,
-  hIndex: 1,
-  introduction: "Microwave Remote Sensing, PolSAR Image Processing",
+  hIndex: 145,
+  introduction: "Machine Learning, Python",
   disciplines: ["Electronic Engineering"],
   skills: [
     "MATLAB Simulation",
-    "Signal Processing",
+    "Python",
     "Electronics and Communication Engineering",
     "Electrical & Electronics Engineering",
   ],
@@ -118,8 +118,10 @@ const UserProfileComponent = () => {
         <div className="bg-[#1f1f1e] pb-6 flex">
           <div>
             <Avatar className="h-24 w-24 mr-5">
-              <AvatarImage src={userProfile.name} />
-              <AvatarFallback>{userProfile.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src="https://vit.edu.in/images/FacultyETRX/l-manoj%20s.png" />
+              <AvatarFallback className="text-3xl font-black">
+                {userProfile.name.charAt(0)}
+              </AvatarFallback>
             </Avatar>
           </div>
           <div className="">

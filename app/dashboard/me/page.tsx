@@ -49,21 +49,22 @@ interface UserProfile {
 }
 
 const userProfile: UserProfile = {
-  name: "Akhil Masurkar",
-  degree: "Master of Engineering",
-  position: "Assistant Professor at Vidyalankar Institute of Technology",
+  name: "Sandip Pathe",
+  degree: "Bachelor of Engineering",
+  position: "Student at Vidyalankar Institute of Technology",
   institution: "Vidyalankar Institute of Technology",
   location: "Mumbai, India",
   researchInterestScore: 3.4,
   citations: 4,
   hIndex: 1,
-  introduction: "Microwave Remote Sensing, PolSAR Image Processing",
+  introduction: "React, Django, Python, Machine learning",
   disciplines: ["Electronic Engineering"],
   skills: [
-    "MATLAB Simulation",
-    "Signal Processing",
-    "Electronics and Communication Engineering",
-    "Electrical & Electronics Engineering",
+    "Python",
+    "Typescript",
+    "React",
+    "Machine Learning",
+    "Polsar Data Processing",
   ],
   activity: {
     researchItems: [
@@ -113,13 +114,14 @@ const userProfile: UserProfile = {
     answers: 0,
   },
   coAuthors: [
-    "Rohin Daruwala",
+    "Akhil Masurkar",
+    "Lathish Rai",
     "Varsha Turkar",
-    "Anup Kumar Das",
-    "Jay Hegshetye",
-    "Vedant Manoj Shirsekar",
+    "Aarya Mohite",
+    "Soham Karulkar",
+    "Sagar Shinde",
   ],
-  followers: ["Vedant Manoj Shirsekar", "Javed Patel", "Tanaya Palav"],
+  followers: ["Lathish Rai", "Javed Patel", "Tanaya Palav"],
 };
 
 const UserProfileComponent = () => {
@@ -151,7 +153,7 @@ const UserProfileComponent = () => {
               }}
               className="h-24 w-24 mr-5 cursor-pointer"
             >
-              <AvatarImage src={userProfile.name} />
+              <AvatarImage src="https://github.com/shadcn.png" />
               <AvatarFallback className="text-7xl font-black text-gray-500">
                 {userProfile.name.charAt(0)}
               </AvatarFallback>

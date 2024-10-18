@@ -7,6 +7,7 @@ import { MdDashboard, MdMoreHoriz } from "react-icons/md";
 import { FcWorkflow } from "react-icons/fc";
 import { IoMdNotifications } from "react-icons/io";
 import { LuMessagesSquare } from "react-icons/lu";
+import { FaGoogleScholar } from "react-icons/fa6";
 
 const links = [
   {
@@ -71,6 +72,15 @@ const links = [
       />
     ),
     label: "AMA",
+  },
+  {
+    path: "/dashboard/repo",
+    icon: (isActive: boolean) => (
+      <FaGoogleScholar
+        className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}
+      />
+    ),
+    label: "REPO",
   },
   {
     path: "/dashboard/more",

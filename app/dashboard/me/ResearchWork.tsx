@@ -18,21 +18,16 @@ interface ResearchItem {
 }
 interface ActivityProps {
   researchItems: ResearchItem[];
-  questions: number;
-  answers: number;
 }
 
-const ResearchWork = ({ researchItems, questions, answers }: ActivityProps) => {
+const ResearchWork = ({ researchItems }: ActivityProps) => {
   return (
     <Card className="bg-[#252525] border-0">
       <CardHeader>
         <h3 className="font-semibold text-xl">Research Works</h3>
       </CardHeader>
       <CardDescription className="border-b border-gray-200 pb-5 mb-10">
-        <p className="ml-6">
-          {researchItems.length} Research Items, {questions} Questions,{" "}
-          {answers} Answers
-        </p>
+        <p className="ml-6">{researchItems.length} Research Items</p>
       </CardDescription>
       <CardContent>
         <ul>

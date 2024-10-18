@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
-
 import React from "react";
 import {
   Card,
@@ -13,8 +12,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { AvatarFallback } from "@radix-ui/react-avatar";
+import {
+  FaReply,
+  FaShare,
+  FaRegCommentDots,
+  FaCommentAlt,
+} from "react-icons/fa"; // Import icons
+import Spiner from "@/components/Spiner";
 
 interface Reply {
   id: number;
@@ -44,7 +50,7 @@ const QuestionThread = () => {
     title:
       "How to enhance collaboration between academia and industry in research?",
     content:
-      "What are the best practices for fostering collaboration between academic researchers and industries for innovative projects?",
+      "What are the best practices for fostering collaboration between academic researchers and industries for innovative projects. What are the best practices for fostering collaboration between academic researchers and industries for innovative projects. What are the best practices for fostering collaboration between academic researchers and industries for innovative projects?",
     author: "Dr. Smith",
     created_at: "2024-10-01",
     replies: [
@@ -92,42 +98,54 @@ const QuestionThread = () => {
 
   useEffect(() => {
     if (id) {
-      setQuestion(dummyQuestion); // Set dummy question for now
+      setQuestion(dummyQuestion);
     }
   }, [id]);
 
-  if (!question) return <p>Loading...</p>;
+  if (!question)
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen bg-inherit">
+          <Spiner />
+        </div>
+      </Layout>
+    );
 
   const renderReplies = (replies: Reply[], level = 0) => {
     return replies.map((reply) => (
       <div key={reply.id} className="flex">
-        {/* Left line and indentation */}
-        <div
-          className={`border-l border-gray-500 w-full ${
-            level > 0 ? "ml-6" : ""
-          }`}
-          style={{ paddingLeft: "20px" }} // Add padding based on nesting level
-        >
-          <Card>
-            <CardHeader className="items-center flex flex-row gap-5 justify-start">
-              <Avatar className="h-16 w-16">
-                <AvatarFallback className="text-sm">
-                  {reply.author.charAt(0)}
-                </AvatarFallback>
+        <div className={`w-full ${level > 0 ? "ml-10 " : ""}`}>
+          <Card className="bg-inherit border-none pb-4">
+            <CardHeader className="p-0 flex flex-row items-center gap-4 justify-start">
+              <Avatar className="h-8 w-8 bg-gray-800">
+                <AvatarImage src="https://github.com/shadcn.png" />
+                <AvatarFallback>CN</AvatarFallback>
               </Avatar>
-              <CardTitle className="font-semibold text-gray-200">
+              <CardTitle className="font-medium text-base text-gray-100">
                 {reply.author}
               </CardTitle>
-              <CardDescription>
-                Replied on {new Date(reply.created_at).toLocaleDateString()}
+              <CardDescription className="text-gray-500 text-sm">
+                {"• "}
+                {new Date(reply.created_at).toLocaleDateString()}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-white">{reply.content}</p>
+            <CardContent className="ml-10 py-2 px-0">
+              <p className="text-gray-300 text-sm font-normal">
+                {reply.content}
+              </p>
             </CardContent>
+            <CardFooter className="flex space-x-4 p-0 ml-10 text-gray-400 text-sm">
+              <button className="flex items-center gap-2">
+                <FaReply /> Reply
+              </button>
+              <button className="flex items-center gap-2">
+                <FaShare /> Share
+              </button>
+              <button className="flex items-center gap-2">
+                <FaRegCommentDots /> Discuss
+              </button>
+            </CardFooter>
           </Card>
-
-          {/* Render nested replies */}
           {reply.replies && renderReplies(reply.replies, level + 1)}
         </div>
       </div>
@@ -136,20 +154,42 @@ const QuestionThread = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto mt-10">
-        <h1 className="text-3xl font-bold mb-4">{question.title}</h1>
-        <div className="bg-gray-800 p-4 rounded-lg text-white">
-          <h2 className="text-xl">{question.content}</h2>
-          <p className="mt-2 text-sm text-gray-300">
-            Asked by {question.author} on{" "}
-            {new Date(question.created_at).toLocaleDateString()}
-          </p>
+      <div className="flex flex-row gap-5">
+        <div className="ml-10 mt-10 w-2/3">
+          <CardHeader className="p-0 flex flex-row items-center gap-4 justify-start">
+            <Avatar className="h-8 w-8 bg-gray-800 overflow-clip">
+              <AvatarImage
+                src="https://placehold.co/400"
+                className="overflow-auto "
+              />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
+            <CardTitle className="font-medium text-base text-gray-100">
+              {question.author}
+            </CardTitle>
+            <CardDescription className="text-gray-500 text-sm">
+              {"• "}
+              {new Date(question.created_at).toLocaleDateString()}
+            </CardDescription>
+          </CardHeader>
+          <CardTitle className="py-2">{question.title}</CardTitle>
+          <CardContent className="py-2 px-0">
+            <p className="text-white text-sm font-normal">{question.content}</p>
+          </CardContent>
+          <CardFooter className="flex space-x-4 p-0 text-gray-400 text-sm">
+            <button className="flex items-center gap-2">
+              <FaReply /> Reply
+            </button>
+            <button className="flex items-center gap-2">
+              <FaShare /> Share
+            </button>
+            <button className="flex items-center gap-2">
+              <FaCommentAlt />
+            </button>
+          </CardFooter>
+          <div className="mt-8">{renderReplies(question.replies)}</div>
         </div>
-
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold">Replies:</h3>
-          {renderReplies(question.replies)}
-        </div>
+        <div className="mt-10 w-1/3"></div>
       </div>
     </Layout>
   );

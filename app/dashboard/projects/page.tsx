@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-
+import { FaPlus } from "react-icons/fa";
 import {
   Card,
   CardContent,
@@ -130,6 +130,8 @@ export default function Projects() {
     },
   ];
 
+  const router = useRouter();
+
   return (
     <Layout>
       <div className="p-8">
@@ -147,7 +149,6 @@ export default function Projects() {
         </Collapsible>
       </div>
 
-      {/* Completed Projects - Collapsed by Default */}
       <div className="p-8">
         <Collapsible>
           <CollapsibleTrigger className="text-sm font-semibold mb-4">
@@ -161,6 +162,14 @@ export default function Projects() {
             </div>
           </CollapsibleContent>
         </Collapsible>
+      </div>
+      <div className="flex z-10 absolute right-4 bottom-4 mt-8">
+        <button
+          onClick={() => router.push("/dashboard/projects/new")}
+          className="bg-green-500 text-white p-4 rounded-full"
+        >
+          <FaPlus className="text-xl" />
+        </button>
       </div>
     </Layout>
   );

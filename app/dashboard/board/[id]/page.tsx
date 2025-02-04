@@ -1,39 +1,19 @@
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+"use client";
+import { useRouter } from "next/navigation";
+import React from "react";
 import Modal from "@/components/Modal";
 
-const PageComponent = () => {
+const TaskModal = ({ params }: { params: { id: string } }) => {
   const router = useRouter();
-  const { modalId } = useParams.arguments;
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (modalId) {
-      setIsModalOpen(true);
-    } else {
-      setIsModalOpen(false);
-    }
-  }, [modalId]);
-
-  const closeModal = () => {
-    router.back();
-    setIsModalOpen(false);
-  };
 
   return (
-    <div>
-      <h1>Page Content</h1>
-
-      {isModalOpen && (
-        <Modal onClose={closeModal} isOpen={isModalOpen}>
-          <div>
-            <p>This is a modal</p>
-            <p>{modalId}</p>
-          </div>
-        </Modal>
-      )}
-    </div>
+    <Modal onClose={() => router.push("/dashboard/board")} isOpen>
+      <div>
+        <p>Editing Task ID: {params.id}</p>
+        {/* Task Editing Form */}
+      </div>
+    </Modal>
   );
 };
 
-export default PageComponent;
+export default TaskModal;

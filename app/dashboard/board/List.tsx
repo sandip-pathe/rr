@@ -4,148 +4,103 @@ import { KanbanBoardContainer, KanbanBoard } from "@/components/tasks/Board";
 import React, { useEffect, useState } from "react";
 import KanbanColumn from "@/components/tasks/Column";
 import KanbanItem from "@/components/tasks/Item";
-import moment from "moment";
 import { ProjectCardMemo } from "@/components/tasks/Card";
 import KanbanCardButton from "@/components/tasks/KanbanCardButton";
 import { useRouter, useSearchParams } from "next/navigation";
 import Modal from "@/components/Modal";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  updateDoc,
+} from "firebase/firestore";
+import { FIREBASE_DB } from "@/FirebaseConfig";
+import { DragEndEvent } from "@dnd-kit/core";
+import CustomModal from "@/components/ModalWrapper";
 
-interface TaskNodes {
+interface Task {
   id: string;
   title: string;
   description: string;
-  dueDate: Date;
-  completed?: Date;
+  dueDate: string;
+  completed: boolean;
   stageId: string | null;
+  // users: string[];
+  // admins: string[];
 }
 
-interface Users {
-  id: string;
-  name: string;
-  createdAt: Date;
-}
-
-interface Task {
-  totalcount: number;
-  nodes: TaskNodes[];
-  users: Users;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const tasks: Task = {
-  totalcount: 4,
-  nodes: [
-    {
-      id: "1",
-      title: "Complete project documentation",
-      description: "Document the entire project workflow and architecture.",
-      dueDate: moment().add(3, "days").toDate(),
-      completed: undefined, // Task is not completed yet
-      stageId: "1", // "TODO"
-    },
-    {
-      id: "2",
-      title: "Set up project repository",
-      description: "Initialize the repository with version control.",
-      dueDate: moment().add(5, "days").toDate(),
-      completed: undefined,
-      stageId: "1", // "TODO"
-    },
-    {
-      id: "3",
-      title: "Review research papers",
-      description: "Go through research papers for project insights.",
-      dueDate: moment().add(7, "days").toDate(),
-      completed: moment().subtract(1, "days").toDate(), // Task is completed
-      stageId: "3", // "IN REVIEW"
-    },
-
-    {
-      id: "5",
-      title: "Create Excel File with New",
-      description: "Organize a meeting to discuss project progress.",
-      dueDate: moment().add(7, "days").toDate(),
-      completed: undefined,
-      stageId: "4",
-    },
-    {
-      id: "6",
-      title: "Create Excel File with New",
-      description: "Organize a meeting to discuss project progress.",
-      dueDate: moment().add(7, "days").toDate(),
-      completed: undefined,
-      stageId: "4",
-    },
-  ],
-  users: {
-    id: "u1",
-    name: "John Doe",
-    createdAt: moment().subtract(1, "year").toDate(),
-  },
-  createdAt: moment().subtract(1, "month").toDate(),
-  updatedAt: moment().toDate(),
-};
-
-interface NodesStages {
+interface TaskStage {
   id: string;
   title: string;
 }
 
-interface Task_Stages {
-  totalCount: number;
-  nodes: NodesStages[];
-}
+const tasksRef = collection(
+  FIREBASE_DB,
+  "projects",
+  "JMZrskwo5m2w2e6upcfa",
+  "tasks"
+);
+const stagesRef = collection(
+  FIREBASE_DB,
+  "projects",
+  "JMZrskwo5m2w2e6upcfa",
+  "stages"
+);
 
-const stages: Task_Stages = {
-  totalCount: 4,
-  nodes: [
-    {
-      id: "1",
-      title: "TODO",
-    },
-    {
-      id: "2",
-      title: "IN PROGRESS",
-    },
-    {
-      id: "3",
-      title: "IN REVIEW",
-    },
-    {
-      id: "4",
-      title: "DONE",
-    },
-  ],
-};
-
-const List = () => {
+const List = ({ children }: React.PropsWithChildren) => {
+  const { replace } = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const taskStages = React.useMemo(() => {
-    setIsLoading(true);
-    if (!tasks?.nodes || !stages?.nodes) {
-      setIsLoading(false);
-      return {
-        unassignedStage: [],
-        columns: [],
-      };
-    }
-
-    const unassignedStage = tasks.nodes.filter((t) => t.stageId === null);
-
-    const grouped: any = stages.nodes.map((s) => ({
-      ...s,
-      tasks: tasks.nodes.filter((t) => t.stageId?.toString() === s.id) || [],
-    }));
-    setIsLoading(false);
-
-    return { unassignedStage, columns: grouped };
-  }, [tasks, stages]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const modalId = searchParams.get("modalId");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [stages, setStages] = useState<TaskStage[]>([]);
+
+  useEffect(() => {
+    const taskQuery = query(tasksRef);
+    const stageQuery = query(stagesRef);
+
+    // Listen for real-time updates on tasks
+    const unsubscribeTasks = onSnapshot(taskQuery, (snapshot) => {
+      const fetchedTasks = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Task[];
+      setTasks(fetchedTasks);
+      console.log(fetchedTasks);
+      setIsLoading(false);
+    });
+
+    // Listen for real-time updates on stages
+    const unsubscribeStages = onSnapshot(stageQuery, (snapshot) => {
+      const fetchedStages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as TaskStage[];
+      setStages(fetchedStages);
+      console.log(fetchedStages);
+    });
+
+    return () => {
+      unsubscribeTasks();
+      unsubscribeStages();
+    };
+  }, []);
+
+  const taskStages = React.useMemo(() => {
+    if (!tasks.length || !stages.length) {
+      return { unassignedStage: [], columns: [] };
+    }
+
+    const unassignedStage = tasks.filter((task) => !task.stageId);
+    const columns = stages.map((stage) => ({
+      ...stage,
+      tasks: tasks.filter((task) => task.stageId === stage.id),
+    }));
+
+    return { unassignedStage, columns };
+  }, [tasks, stages]);
 
   useEffect(() => {
     if (modalId) {
@@ -156,18 +111,60 @@ const List = () => {
   }, [modalId]);
 
   const closeModal = () => {
-    router.push("/board");
-    setIsModalOpen(false);
+    const params = new URLSearchParams(window.location.search);
+    params.delete("modalId");
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", newUrl);
+    setIsModalOpen(false); // Also update local state if needed.
   };
 
   const handleAddCard = (args: { stageId: string }) => {
-    router.push(`/board?modalId=${args.stageId}`);
+    const params = new URLSearchParams(window.location.search);
+    params.set("modalId", args.stageId === "unassigned" ? "new" : args.stageId);
+    replace(`/dashboard/board?${params.toString()}`, { scroll: false });
+  };
+
+  const handleOnDragEnd = async (event: DragEndEvent) => {
+    let newStageId = event.over?.id as string | undefined | null;
+    const taskId = event.active.id as string;
+    const currentStageId = event.active.data.current?.stageId;
+
+    if (currentStageId === newStageId) {
+      return;
+    }
+    if (newStageId === "unassigned") {
+      newStageId = null;
+    }
+
+    const previousTasks = [...tasks];
+
+    // Update local tasks state optimistically
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId ? { ...task, stageId: newStageId ?? null } : task
+      )
+    );
+
+    try {
+      const taskDocRef = doc(tasksRef, taskId);
+      await updateDoc(taskDocRef, { stageId: newStageId });
+      console.log(`Task ${taskId} successfully updated to stage ${newStageId}`);
+    } catch (error) {
+      console.error("Error updating task stage, rolling back:", error);
+      setTasks(previousTasks);
+    }
+  };
+
+  const handleCardClick = (cardId: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("modalId", cardId);
+    replace(`/dashboard/board?${params.toString()}`, { scroll: false });
   };
 
   return (
     <>
       <KanbanBoardContainer>
-        <KanbanBoard>
+        <KanbanBoard onDragEnd={handleOnDragEnd}>
           <KanbanColumn
             id="unassigned"
             title={"unassigned"}
@@ -179,11 +176,12 @@ const List = () => {
                 key={task.id}
                 id={task.id}
                 data={{ ...task, stageId: "unassigned" }}
+                onClick={() => handleCardClick(task.id)}
               >
                 <ProjectCardMemo
                   updatedAt={""}
                   {...task}
-                  dueDate={task.dueDate.toString() || undefined}
+                  dueDate={task.dueDate?.toString() || undefined}
                 />
               </KanbanItem>
             ))}
@@ -218,11 +216,13 @@ const List = () => {
             </KanbanColumn>
           ))}
         </KanbanBoard>
-        <Modal onClose={closeModal} isOpen={isModalOpen}>
+        <CustomModal isOpen={isModalOpen} onClose={closeModal}>
           <div>
-            <p>This is a modal for Stage ID: {modalId}</p>
+            <h2>Modal Content</h2>
+            <p>Modal Id: {modalId}</p>
+            {/* Insert additional view/edit/new content as needed */}
           </div>
-        </Modal>
+        </CustomModal>
       </KanbanBoardContainer>
     </>
   );

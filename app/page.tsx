@@ -22,6 +22,9 @@ export default function Home() {
             <Link href="/auth/register" className="text-green-500">
               Register
             </Link>
+            <Link href="/dashboard" className="text-green-500">
+              Dashboard
+            </Link>
             <Link href="/?admin=true" className="text-green-500">
               Admin
             </Link>

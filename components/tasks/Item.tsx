@@ -10,9 +10,15 @@ import React from "react";
 interface Props {
   id: string;
   data?: UseDraggableArguments["data"];
+  onClick?: () => void;
 }
 
-const KanbanItem = ({ children, id, data }: React.PropsWithChildren<Props>) => {
+const KanbanItem = ({
+  children,
+  id,
+  data,
+  onClick,
+}: React.PropsWithChildren<Props>) => {
   const { attributes, listeners, setNodeRef, active } = useDraggable({
     id,
     data,

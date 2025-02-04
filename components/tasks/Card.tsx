@@ -8,6 +8,7 @@ import { getDateColor } from "@/lib/get-date-colors";
 import { Badge } from "../ui/badge";
 import { LuClock4 } from "react-icons/lu";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+
 import {
   ContextMenu,
   ContextMenuContent,
@@ -28,7 +29,6 @@ interface ProjectCardProps {
 }
 
 const ProjectCard = ({ id, title, dueDate, users }: ProjectCardProps) => {
-  const edit = () => {};
   const dueDateOptions = useMemo(() => {
     if (!dueDate) return null;
     const date = dayjs(dueDate);
@@ -50,7 +50,7 @@ const ProjectCard = ({ id, title, dueDate, users }: ProjectCardProps) => {
     <div>
       <ContextMenu>
         <ContextMenuTrigger>
-          <Card onClick={() => edit()}>
+          <Card>
             <CardHeader>
               <h1 className="line-clamp-1">{title}</h1>
             </CardHeader>

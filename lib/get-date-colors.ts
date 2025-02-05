@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 type DateColors = "success" | "processing" | "error" | "default" | "warning";
 
 export const getDateColor = (args: {
-  date: string;
+  date: Date | string;
   defaultColor?: DateColors;
 }): DateColors => {
   const date = dayjs(args.date);

@@ -29,6 +29,7 @@ export default function RootLayout({
           fontSans.variable
         )}
       >
+        <div id="modal-root"></div>
         <ThemeProvider attribute="class" defaultTheme="dark">
           {children}
         </ThemeProvider>

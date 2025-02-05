@@ -16,13 +16,15 @@ const CustomModal: React.FC<CustomModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  // Ensure there's a div with id 'modal-root' in your _document or index.html
   const modalRoot = document.getElementById("modal-root");
   const content = (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
-        <button style={styles.closeButton} onClick={onClose}>
-          ×
+    <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative w-full max-w-md">
+        <button
+          className="absolute top-3 right-3 text-gray-600 hover:text-gray-900"
+          onClick={onClose}
+        >
+          &times;
         </button>
         {children}
       </div>
@@ -30,37 +32,6 @@ const CustomModal: React.FC<CustomModalProps> = ({
   );
 
   return modalRoot ? ReactDOM.createPortal(content, modalRoot) : content;
-};
-
-const styles = {
-  overlay: {
-    position: "fixed" as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000,
-  },
-  modal: {
-    borderRadius: "8px",
-    padding: "20px",
-    position: "relative" as const,
-    minWidth: "300px",
-    maxWidth: "90%",
-  },
-  closeButton: {
-    position: "absolute" as const,
-    top: "10px",
-    right: "10px",
-    background: "transparent",
-    border: "none",
-    fontSize: "1.5rem",
-    cursor: "pointer",
-  },
 };
 
 export default CustomModal;

@@ -16,7 +16,7 @@ interface Props {
 
 export const KanbanBoardContainer = ({ children }: React.PropsWithChildren) => {
   return (
-    <div className="w-[calc(100%+64px)] h-[calc(100vh-64px)] flex overflow-auto">
+    <div className="w-[calc(100%+64px)] h-[calc(100vh-132px)] flex overflow-auto">
       <div className="w-full h-full flex p-8 overflow-auto">{children}</div>
     </div>
   );

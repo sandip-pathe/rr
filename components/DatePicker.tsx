@@ -19,6 +19,10 @@ interface DatePickerProps {
 }
 
 const DatePickerShadCN = ({ date, setDate }: DatePickerProps) => {
+  // If no date is provided, default to the current date for display.
+  const currentDate = new Date();
+  const displayDate = date && isValid(date) ? date : currentDate;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -30,8 +34,9 @@ const DatePickerShadCN = ({ date, setDate }: DatePickerProps) => {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date && isValid(date) ? (
-            format(date, "PPP")
+          {/* Display the formatted date. If no date was set, show the current date */}
+          {isValid(displayDate) ? (
+            format(displayDate, "PPP")
           ) : (
             <span>Pick a date</span>
           )}
@@ -40,8 +45,14 @@ const DatePickerShadCN = ({ date, setDate }: DatePickerProps) => {
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={date}
-          onSelect={setDate}
+          // Use the displayDate to show the current date if no value exists.
+          selected={displayDate}
+          onSelect={(selectedDate) => {
+            // Update the form value only if a valid date is selected.
+            if (selectedDate && isValid(selectedDate)) {
+              setDate(selectedDate);
+            }
+          }}
           initialFocus
         />
       </PopoverContent>

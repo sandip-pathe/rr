@@ -37,7 +37,7 @@ const ProjectCard = ({
   return (
     <Card
       onClick={() => router.push(`/dashboard/projects/${id}`)}
-      className="w-70 h-40 cursor-pointer transition-transform transform hover:scale-105"
+      className="w-70 h-40 cursor-pointer transition-transform transform hover:scale-105 bg-[#282829] border-none shadow-md"
     >
       <CardHeader>
         <CardTitle className="text-lg truncate max-w-full overflow-hidden whitespace-nowrap">
@@ -95,7 +95,7 @@ export default function Projects() {
     <Layout>
       <div className="p-8">
         <Collapsible open>
-          <CollapsibleTrigger className="text-sm font-semibold mb-4">
+          <CollapsibleTrigger className="text-base font-semibold mb-4">
             Ongoing Projects
           </CollapsibleTrigger>
           <CollapsibleContent>

@@ -108,7 +108,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
         const tasksCollectionRef = collection(
           FIREBASE_DB,
           "projects",
-          "JMZrskwo5m2w2e6upcfa",
+          "collabhub---the-ultimate-project-management-&-networking-platform-1738846460935",
           "tasks"
         );
         await addDoc(tasksCollectionRef, {
@@ -124,7 +124,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
         const taskDocRef = doc(
           FIREBASE_DB,
           "projects",
-          "JMZrskwo5m2w2e6upcfa",
+          "collabhub---the-ultimate-project-management-&-networking-platform-1738846460935",
           "tasks",
           taskId
         );
@@ -151,7 +151,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
       const taskDocRef = doc(
         FIREBASE_DB,
         "projects",
-        "JMZrskwo5m2w2e6upcfa",
+        "collabhub---the-ultimate-project-management-&-networking-platform-1738846460935",
         "tasks",
         taskId
       );

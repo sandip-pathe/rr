@@ -38,15 +38,6 @@ const links = [
     label: "Board",
   },
   {
-    path: "/dashboard/calendar",
-    icon: (isActive: boolean) => (
-      <FaCalendar
-        className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}
-      />
-    ),
-    label: "Calendar",
-  },
-  {
     path: "/dashboard/people",
     icon: (isActive: boolean) => (
       <FaUsers
@@ -101,7 +92,7 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="fixed w-20 h-screen bg-[#0b0b0A] text-white shadow">
+    <aside className="fixed w-20 h-screen bg-[#0b0b0A] text-white shadow z-50">
       <ul className="mt-12">
         {links.map((link, index) => (
           <li key={index} onClick={() => handleNavigation(link.path)}>
@@ -113,7 +104,7 @@ const Sidebar = () => {
               }`}
             >
               {link.icon(pathname === link.path)}
-              <p className="text-xs">{link.label}</p>
+              <p className="text-xs mt-2">{link.label}</p>
             </div>
           </li>
         ))}

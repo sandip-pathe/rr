@@ -43,8 +43,6 @@ const ProjectForm = () => {
       status: "Ongoing",
       members: [],
       admins: [],
-      stages: [],
-      tasks: [],
       dueDate: undefined,
     },
   });
@@ -156,48 +154,25 @@ const ProjectForm = () => {
             control={form.control}
             fieldType={FormFieldType.M_SEARCHABLE_SELECT}
             allowNewOptions={false}
-            name="members"
-            label="Add members to the project"
-            placeholder="Select multiple members"
-            options={users.map((user) => user.id)}
+            name="admins"
+            label="Add admins to the project"
+            placeholder="Select multiple admins"
+            options={users}
+            optionKey="id"
+            optionLabel="name"
           />
           <CustomFormField
             control={form.control}
             fieldType={FormFieldType.M_SEARCHABLE_SELECT}
             allowNewOptions={false}
-            name="admins"
-            label="Add admins to the project"
-            placeholder="Select multiple admins"
-            options={users.map((user) => user.id)}
+            name="members"
+            label="Add members to the project"
+            placeholder="Select multiple members"
+            options={users}
+            optionKey="id"
+            optionLabel="name"
           />
-          <CustomFormField
-            control={form.control}
-            fieldType={FormFieldType.M_SEARCHABLE_SELECT}
-            name="stages"
-            label="Add stages to the project"
-            placeholder="Select multiple stages"
-            options={[
-              "unassigned",
-              "To do",
-              "In progress",
-              "In Review",
-              "Completed",
-            ]}
-          />
-          <CustomFormField
-            control={form.control}
-            fieldType={FormFieldType.M_SEARCHABLE_SELECT}
-            name="tasks"
-            label="Add tasks to the project"
-            placeholder="Select multiple tasks"
-            options={[
-              "unassigned",
-              "To do",
-              "In progress",
-              "In Review",
-              "Completed",
-            ]}
-          />
+
           <Button type="submit" disabled={loading} className="w-full">
             {loading
               ? "Saving..."

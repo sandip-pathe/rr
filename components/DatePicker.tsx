@@ -25,7 +25,7 @@ const DatePickerShadCN = ({ date, setDate }: DatePickerProps) => {
         <Button
           variant={"outline"}
           className={cn(
-            "w-[240px] justify-start text-left font-normal",
+            "w-[240px] justify-start text-left font-normal border-dark-500 bg-dark-400",
             !date && "text-muted-foreground"
           )}
         >

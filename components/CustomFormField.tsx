@@ -43,6 +43,7 @@ interface CustomProps {
   children?: React.ReactNode;
   renderSkeleton?: (field: any) => React.ReactNode;
   options?: string[];
+  allowNewOptions?: boolean;
 }
 
 const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
@@ -55,20 +56,20 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
     autocomplete,
     children,
     options,
+    allowNewOptions = true,
   } = props;
 
   const [filteredOptions, setFilteredOptions] = useState<string[]>([]);
-  const [inputValue, setInputValue] = useState(""); // Track the input value
+  const [inputValue, setInputValue] = useState(field.value || "");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(
+    field.value || []
+  );
 
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]); // Track selected options
-
-  // Handle input change to filter options
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
-    setInputValue(input); // Update the input value
+    setInputValue(input);
 
-    // Filter the options based on the input
     const filtered = options!.filter((option) =>
       option.toLowerCase().includes(input.toLowerCase())
     );
@@ -76,35 +77,37 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
     setShowDropdown(true);
   };
 
-  // Add selected option to the list
   const handleOptionClick = (option: string) => {
-    if (!selectedOptions.includes(option)) {
-      const newSelectedOptions = [...selectedOptions, option];
-      setSelectedOptions(newSelectedOptions); // Add to selected options
-      field.onChange(newSelectedOptions); // Update form state with selected options
-    }
-    setShowDropdown(false); // Close the dropdown
-    setInputValue(""); // Clear the input
+    setInputValue(option);
+    field.onChange(option);
+    setShowDropdown(false);
   };
 
-  // Remove a selected option
+  const handleMultiOptionClick = (option: string) => {
+    if (!selectedOptions.includes(option)) {
+      const newSelectedOptions = [...selectedOptions, option];
+      setSelectedOptions(newSelectedOptions);
+      field.onChange(newSelectedOptions);
+    }
+    setInputValue("");
+    setShowDropdown(false);
+  };
+
   const handleRemoveOption = (option: string) => {
     const newSelectedOptions = selectedOptions.filter(
       (item) => item !== option
     );
     setSelectedOptions(newSelectedOptions);
-    field.onChange(newSelectedOptions); // Update form state with updated options
+    field.onChange(newSelectedOptions);
   };
 
-  // Handle creating a new option
   const handleCreateNew = () => {
-    if (!selectedOptions.includes(inputValue)) {
-      const newSelectedOptions = [...selectedOptions, inputValue];
-      setSelectedOptions(newSelectedOptions); // Add new custom option to selected options
-      field.onChange(newSelectedOptions); // Update form state with new custom option
+    if (allowNewOptions && inputValue.trim() !== "") {
+      setSelectedOptions([...selectedOptions, inputValue]);
+      field.onChange([...selectedOptions, inputValue]);
     }
-    setShowDropdown(false); // Close the dropdown
-    setInputValue(""); // Clear the input
+    setShowDropdown(false);
+    setInputValue("");
   };
 
   switch (fieldType) {
@@ -138,7 +141,7 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
           <Textarea
             placeholder={placeholder}
             {...field}
-            className="shad-textarea bg-[#1f1f1e] rounded-none"
+            className="shad-textarea border-dark-500 bg-dark-400 rounded-none"
           />
         </FormControl>
       );
@@ -153,7 +156,7 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
             withCountryCallingCode
             value={field.value as "" | undefined}
             onChange={field.onChange}
-            className="input-phone"
+            className="input-phone border-dark-500 bg-dark-400"
           />
         </FormControl>
       );
@@ -184,18 +187,18 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
 
     case FormFieldType.SEARCHABLE_SELECT:
       return (
-        <div className="relative">
+        <div className="relative w-full">
           <FormControl>
             <Input
               placeholder={placeholder}
               value={inputValue}
               onChange={handleSearchChange}
-              className="shad-input border-0 rounded-none"
+              className="shad-input rounded-none border-dark-500 bg-dark-400"
             />
           </FormControl>
 
           {showDropdown && (
-            <ul className="absolute z-10 w-full bg-black border border-gray-300 shadow-lg max-h-40 overflow-auto scrollbar-hide">
+            <ul className="absolute z-10 w-full bg-black border border-gray-300 shadow-lg max-h-40 overflow-auto scrollbar-hide rounded-sm">
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((option, index) => (
                   <li
@@ -206,15 +209,14 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
                     {option}
                   </li>
                 ))
-              ) : (
-                // No match found, allow the user to create a new degree
+              ) : allowNewOptions ? (
                 <li
                   className="p-2 cursor-pointer hover:bg-gray-800"
                   onClick={handleCreateNew}
                 >
-                  Create new degree: <strong>{inputValue}</strong>
+                  Add New: <strong>{inputValue}</strong>
                 </li>
-              )}
+              ) : null}
             </ul>
           )}
         </div>
@@ -223,7 +225,6 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
     case FormFieldType.M_SEARCHABLE_SELECT:
       return (
         <div className="relative w-full">
-          {/* Display selected items as chips */}
           <div className="flex flex-wrap gap-2 mb-2">
             {selectedOptions.map((option, index) => (
               <div
@@ -241,17 +242,16 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
               </div>
             ))}
           </div>
-          <div className="mb-2">
-            <input
+          <FormControl>
+            <Input
               type="text"
               placeholder={placeholder}
               value={inputValue}
               onChange={handleSearchChange}
-              className="w-full p-2 shad-textarea"
+              className="w-full p-2 shad-textarea border-dark-500 bg-dark-400"
             />
-          </div>
+          </FormControl>
 
-          {/* Dropdown for filtered options */}
           {showDropdown && (
             <ul className="absolute z-10 w-full bg-black border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto scrollbar-hide">
               {filteredOptions.length > 0 ? (
@@ -259,20 +259,19 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
                   <li
                     key={index}
                     className="p-2 hover:bg-gray-800 cursor-pointer"
-                    onClick={() => handleOptionClick(option)}
+                    onClick={() => handleMultiOptionClick(option)}
                   >
                     {option}
                   </li>
                 ))
-              ) : (
-                // If no match found, allow the user to create a new option
+              ) : allowNewOptions ? (
                 <li
                   className="p-2 text-white hover:bg-gray-800 cursor-pointer"
                   onClick={handleCreateNew}
                 >
                   Add: <strong>{inputValue}</strong>
                 </li>
-              )}
+              ) : null}
             </ul>
           )}
         </div>

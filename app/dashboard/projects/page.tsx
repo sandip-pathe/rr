@@ -37,7 +37,7 @@ const ProjectCard = ({
   return (
     <Card
       onClick={() => router.push(`/dashboard/projects/${id}`)}
-      className="w-70 h-40 cursor-pointer transition-transform transform hover:scale-105 bg-[#282829] border-none shadow-md"
+      className="w-70 h-40 cursor-pointer transition-transform transform hover:scale-105 bg-[#5720B7] border-none shadow-md"
     >
       <CardHeader>
         <CardTitle className="text-lg truncate max-w-full overflow-hidden whitespace-nowrap">
@@ -134,7 +134,7 @@ export default function Projects() {
       <div className="flex z-10 fixed right-6 bottom-6">
         <button
           onClick={() => router.push("/dashboard/projects/new")}
-          className="bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition"
+          className="bg-[#5720B7] text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition"
         >
           <FaPlus className="text-xl" />
         </button>

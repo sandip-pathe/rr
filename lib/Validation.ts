@@ -59,6 +59,7 @@ export const EditFormValidation = z.object({
   phone: z
     .string()
     .refine((phone) => /^\+\d{10,15}$/.test(phone), "Invalid phone number"),
+  introduction: z.string(),
 });
 
 
@@ -67,5 +68,12 @@ export const AMAAskFormValidation = z.object({
     .min(2, "Question must be at least 2 characters.")
     .max(250, "Question must be at most 50 characters."),
   description: z.string()
+});
+
+
+export const registrationTwoValidation = z.object({
+  degree: z.string(),
+  role: z.string(),
+  introduction: z.string(),
 });
 

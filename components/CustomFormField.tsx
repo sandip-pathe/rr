@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import {
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -12,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Control } from "react-hook-form";
-import { FormFieldType } from "./forms/NewRegisterForm";
+import { FormFieldType } from "@/enum/FormFieldTypes";
 import Image from "next/image";
 import "react-phone-number-input/style.css";
 import PhoneInput from "react-phone-number-input";
@@ -27,7 +26,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImCross } from "react-icons/im";
 
-// Extend the props to allow passing option key/label names.
 interface CustomProps {
   control: Control<any>;
   fieldType: FormFieldType;
@@ -62,29 +60,20 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
     optionLabel = "name",
   } = props;
 
-  // Determine if options are objects (if at least one exists and is object)
   const isObjectOptions = options.length > 0 && typeof options[0] === "object";
-
-  // Local state for input value (used in searchable selects)
   const [inputValue, setInputValue] = useState("");
-  // Local state for filtered options (array of either strings or objects)
   const [filteredOptions, setFilteredOptions] = useState<any[]>([]);
-  // For multi-select, maintain selected options as an array of string ids.
+  const [showDropdown, setShowDropdown] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<string[]>(
     Array.isArray(field.value) ? field.value : []
   );
-  // For single select (SEARCHABLE_SELECT), we assume field.value is the id or value.
-  // We will store the display value (if using object options) in inputValue.
 
-  // Sync initial field value for searchable selects.
   useEffect(() => {
     if (field.value) {
       if (fieldType === FormFieldType.M_SEARCHABLE_SELECT) {
-        // Expect field.value to be an array of ids.
         setSelectedOptions(field.value);
       } else if (fieldType === FormFieldType.SEARCHABLE_SELECT) {
         if (isObjectOptions) {
-          // Look up the matching object using the stored id.
           const selectedObj = options.find(
             (o: any) => o[optionKey] === field.value
           );
@@ -105,12 +94,9 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
     optionLabel,
   ]);
 
-  // Handler for input change in searchable selects.
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
     setInputValue(input);
-
-    // Filter options based on whether they are objects or plain strings.
     if (isObjectOptions) {
       const filtered = options.filter((option: any) =>
         option[optionLabel].toLowerCase().includes(input.toLowerCase())
@@ -122,14 +108,9 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
       );
       setFilteredOptions(filtered);
     }
-    // Show the dropdown (if any matches)
     setShowDropdown(true);
   };
 
-  // State to control dropdown visibility.
-  const [showDropdown, setShowDropdown] = useState(false);
-
-  // Single select: when an option is clicked, update input and field.
   const handleOptionClick = (option: any) => {
     if (isObjectOptions) {
       setInputValue(option[optionLabel]);
@@ -141,7 +122,6 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
     setShowDropdown(false);
   };
 
-  // Multi-select: when an option is clicked, add its value.
   const handleMultiOptionClick = (option: any) => {
     const value = isObjectOptions ? option[optionKey] : option;
     if (!selectedOptions.includes(value)) {
@@ -153,17 +133,14 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
     setShowDropdown(false);
   };
 
-  // Remove an item from the multi-select.
   const handleRemoveOption = (option: string) => {
     const newSelected = selectedOptions.filter((item) => item !== option);
     setSelectedOptions(newSelected);
     field.onChange(newSelected);
   };
 
-  // Handler for adding new option if allowed.
   const handleCreateNew = () => {
     if (allowNewOptions && inputValue.trim() !== "") {
-      // In this case, treat the new value as a string.
       if (fieldType === FormFieldType.M_SEARCHABLE_SELECT) {
         const newSelected = [...selectedOptions, inputValue];
         setSelectedOptions(newSelected);
@@ -177,7 +154,6 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
     setInputValue("");
   };
 
-  // Helper to get display label for a given value (id) in multi-select.
   const getOptionLabel = (value: string) => {
     if (isObjectOptions) {
       const found = options.find((o: any) => o[optionKey] === value);
@@ -203,7 +179,6 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
             <Input
               placeholder={placeholder}
               type={type || "text"}
-              autoComplete={true}
               {...field}
               className="shad-input border-0"
             />

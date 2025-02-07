@@ -6,21 +6,28 @@ import { z } from "zod";
 import { Form } from "@/components/ui/form";
 import CustomFormField from "../CustomFormField";
 import SubmitButton from "../SubmitButton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { FIREBASE_AUTH } from "@/FirebaseConfig";
 import { LoginFormValidation } from "@/lib/Validation";
 import Link from "next/link";
+import { useAuth } from "../../app/auth/AuthContext";
 
 export enum FormFieldType {
   INPUT = "input",
 }
 
 const LoginPage = () => {
+  const { user } = useAuth(); // Get current user from AuthContext
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null); // For error handling
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
 
   const form = useForm<z.infer<typeof LoginFormValidation>>({
     resolver: zodResolver(LoginFormValidation),
@@ -37,19 +44,10 @@ const LoginPage = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        FIREBASE_AUTH,
-        email,
-        password
-      );
-      const user = userCredential.user;
-
-      if (user) {
-        router.push(`/dashboard`);
-      }
-    } catch (error) {
-      setError("Failed to login. Please check your email or password.");
-      console.log("Login error:", error);
+      await signInWithEmailAndPassword(FIREBASE_AUTH, email, password);
+      router.push("/dashboard");
+    } catch (error: any) {
+      setError(error.message || "Failed to login. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +61,7 @@ const LoginPage = () => {
           <p className="text-dark-700">Please log in to continue</p>
         </section>
         {error && <p className="text-red-600">{error}</p>}{" "}
-        {/* Display error message if login fails */}
+        {/* Show error message */}
         <CustomFormField
           fieldType={FormFieldType.INPUT}
           name="email"
@@ -82,9 +80,8 @@ const LoginPage = () => {
           iconSrc="/assets/icons/lock.svg"
           iconAlt="password"
           control={form.control}
-          autocomplete="current-password"
         />
-        <Link href="/auth/register" className="text-green-500">
+        <Link href="/auth/register" className="text-[#7839EE] mt-10">
           Forgot Password?
         </Link>
         <SubmitButton isLoading={isLoading}>Log In</SubmitButton>

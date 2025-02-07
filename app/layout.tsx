@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import RightClickHandler from "@/components/RightClick";
+import { AuthProvider } from "./auth/AuthContext";
 
 const fontSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -31,7 +32,7 @@ export default function RootLayout({
       >
         <div id="modal-root"></div>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          {children}
+          <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
       </body>
     </html>

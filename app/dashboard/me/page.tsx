@@ -2,146 +2,66 @@
 
 import Layout from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/Modal";
 import EditMainUserComponent from "./EditMainUserComponent";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import PeopleProfileCard from "./UserProfile";
 import ResearchWork from "./ResearchWork";
 import AddResearch from "./AddResearch";
-import Header from "@/components/Header";
-
-interface ResearchItem {
-  title: string;
-  type: string; // e.g., Article, Conference Paper
-  date: string; // Publication date
-  reads: number; // Number of reads
-  citations: number; // Number of citations
-  authors?: string[];
-}
+import { getDoc, doc } from "firebase/firestore";
+import { FIREBASE_DB } from "@/FirebaseConfig";
+import { useAuth } from "@/app/auth/AuthContext";
 
 interface UserProfile {
   name: string;
   degree: string;
-  position: string;
+  role: string;
   institution: string;
   location: string;
-  researchInterestScore: number;
-  citations: number;
-  hIndex: number;
+  photoURL: string;
   introduction: string;
-  disciplines: string[];
+  desciplines: string[];
   skills: string[];
-  activity: {
-    researchItems: ResearchItem[];
-    questions: number;
-    answers: number;
-  };
   coAuthors: string[];
   followers: string[];
 }
 
-const userProfile: UserProfile = {
-  name: "Sandip Pathe",
-  degree: "Bachelor of Engineering",
-  position: "Student at Vidyalankar Institute of Technology",
-  institution: "Vidyalankar Institute of Technology",
-  location: "Mumbai, India",
-  researchInterestScore: 3.4,
-  citations: 4,
-  hIndex: 1,
-  introduction: "React, Django, Python, Machine learning",
-  disciplines: ["Electronic Engineering"],
-  skills: [
-    "Python",
-    "Typescript",
-    "React",
-    "Machine Learning",
-    "Polsar Data Processing",
-  ],
-  activity: {
-    researchItems: [
-      {
-        title:
-          "Performance Evaluation of Optimization Functions for Neural Network Classifier Using Decomposed Polsar Images",
-        type: "Conference Paper",
-        date: "July 2024",
-        reads: 12,
-        citations: 0,
-        authors: ["Akhil M", "Sandip P", "Arya M"],
-      },
-      {
-        title:
-          "Performance Evaluation of Optimization Functions for Neural Network Classifier Using Decomposed Polsar Images for Mangrove Detection",
-        type: "Conference Paper",
-        date: "July 2024",
-        reads: 2,
-        citations: 0,
-        authors: ["Varsha T", "Sandip P", "Arya M"],
-      },
-      {
-        title:
-          "Performance analysis of SAR filtering techniques using SVM and Wishart Classifier",
-        type: "Article",
-        date: "March 2024",
-        reads: 29,
-        citations: 2,
-      },
-      {
-        title:
-          "Development of Generalized Machine Learning Model to Classify PolSAR Data",
-        type: "Conference Paper",
-        date: "July 2023",
-        reads: 30,
-        citations: 0,
-      },
-      {
-        title: "NPK And Oxygen Regulation System for Hydroponics",
-        type: "Conference Paper",
-        date: "December 2021",
-        reads: 20,
-        citations: 1,
-      },
-    ],
-    questions: 0,
-    answers: 0,
-  },
-  coAuthors: [
-    "Akhil Masurkar",
-    "Lathish Rai",
-    "Varsha Turkar",
-    "Aarya Mohite",
-    "Soham Karulkar",
-    "Sagar Shinde",
-  ],
-  followers: ["Lathish Rai", "Javed Patel", "Tanaya Palav"],
-};
-
 const UserProfileComponent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModal2Open, setIsModal2Open] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const openModal2 = () => {
-    setIsModal2Open(true);
-  };
+  useEffect(() => {
+    if (!user?.uid) return;
 
-  const closeModal2 = () => {
-    setIsModal2Open(false);
-  };
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
+    setIsLoading(true);
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
+    const fetchUserProfile = async () => {
+      try {
+        const userDoc = await getDoc(doc(FIREBASE_DB, "users", user.uid));
+        if (userDoc.exists()) {
+          setUserProfile(userDoc.data() as UserProfile);
+        } else {
+          console.warn("User profile not found!");
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
+  if (isLoading) return <div className="text-center p-10">Loading...</div>;
+
+  if (!userProfile) return <div className="text-center p-10"></div>;
+
   return (
     <Layout>
       <div className="p-8">
@@ -153,7 +73,7 @@ const UserProfileComponent = () => {
               }}
               className="h-24 w-24 mr-5 cursor-pointer"
             >
-              <AvatarImage src="https://github.com/shadcn.png" />
+              <AvatarImage src={userProfile.photoURL} />
               <AvatarFallback className="text-7xl font-black text-gray-500">
                 {userProfile.name.charAt(0)}
               </AvatarFallback>
@@ -163,60 +83,70 @@ const UserProfileComponent = () => {
             <div className="flex flex-wrap gap-5 items-center">
               <h1 className="text-xl font-bold">{userProfile.name}</h1>
               <Button
-                onClick={openModal}
+                onClick={() => setIsModalOpen(true)}
                 className="h-fit w-fit px-2 py-0 bg-transparent rounded-none hover:bg-slate-700 text-white underline-offset-1 underline"
               >
                 Edit
               </Button>
             </div>
+            <p>{userProfile.role}</p>
             <h2 className="text-lg">
-              {userProfile.degree} - {userProfile.position}
+              {userProfile.degree} - {userProfile.institution}
             </h2>
             <p>{userProfile.location}</p>
           </div>
-          <div className="flex gap-1 flex-col ml-20">
-            <span>
-              Research Interest Score: {userProfile.researchInterestScore}
-            </span>
-            <span>Citations: {userProfile.citations}</span>
-            <span>h-index: {userProfile.hIndex}</span>
+          <div className="flex gap-1 flex-col mr-20 ml-auto">
+            <span>Research Interest Score: {"3"}</span>
+            <span>Citations: {"6"}</span>
+            <span>h-index: {"7"}</span>
           </div>
         </div>
-        <Modal isOpen={isModalOpen} onClose={closeModal}>
+        {/*Edit Profile Modal */}
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
           <div className="bg-black w-2/3 m-auto mt-12 ">
             <EditMainUserComponent />
             <Button
-              onClick={closeModal}
+              onClick={() => setIsModalOpen(false)}
               className="ml-6 mb-6 bg-transparent text-white p-2 hover:bg-dark-300"
             >
               Cancel
             </Button>
           </div>
         </Modal>
-        <Modal isOpen={isModal2Open} onClose={closeModal2}>
+
+        {/*Add Research Modal */}
+        <Modal isOpen={isModal2Open} onClose={() => setIsModal2Open(false)}>
           <div className="bg-black w-2/3 m-auto mt-12 ">
             <AddResearch />
             <Button
-              onClick={closeModal2}
+              onClick={() => setIsModal2Open(false)}
               className="ml-6 mb-6 bg-transparent text-white p-2 hover:bg-dark-300"
             >
               Cancel
             </Button>
           </div>
         </Modal>
+
+        {/*Buttons */}
         <div className="flex flex-wrap items-end justify-center gap-5 mb-10 mr-10">
-          <Button className="text-md font-semibold" onClick={openModal2}>
-            Add Research
+          <Button
+            className="text-md font-semibold"
+            onClick={() => setIsModal2Open(true)}
+          >
+            Add Work
           </Button>
           <Button className="bg-transparent text-white hover:text-black hover:bg-white">
             More
           </Button>
         </div>
 
+        {/*User Profile Component */}
         <div className="flex flex-wrap gap-10">
           <div className="w-2/3">
             <PeopleProfileCard {...userProfile} />
           </div>
+
+          {/*Top Co-authors */}
           <div className="w-1/4">
             <Card className="bg-[#252525] border-0 ">
               <CardHeader>
@@ -240,10 +170,12 @@ const UserProfileComponent = () => {
             </Card>
           </div>
 
+          {/*Research Work */}
           <div className="w-2/3">
-            <ResearchWork {...userProfile.activity} />
+            {user && <ResearchWork userId={userProfile.name} />}
           </div>
 
+          {/*Followers */}
           <div className="w-1/4">
             <Card className="bg-[#252525] border-0 ">
               <CardHeader>

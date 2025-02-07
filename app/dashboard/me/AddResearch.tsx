@@ -6,7 +6,7 @@ import { z } from "zod";
 import { Form } from "@/components/ui/form";
 import CustomFormField from "@/components/CustomFormField";
 import SubmitButton from "@/components/SubmitButton";
-import { useState } from "react";
+import { SetStateAction, useState } from "react";
 import { EditFormValidation } from "@/lib/Validation";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -20,18 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import DatePickerShadCN from "@/components/DatePicker";
 import { MdCloudUpload } from "react-icons/md";
-
-export enum FormFieldType {
-  INPUT = "input",
-  TEXTAREA = "textarea",
-  PHONE_INPUT = "phoneInput",
-  CHECKBOX = "checkbox",
-  DATE_PICKER = "datePicker",
-  SELECT = "select",
-  SKELETON = "skeleton",
-  SEARCHABLE_SELECT = "searchableSelect",
-  M_SEARCHABLE_SELECT = "mSearchableSelect",
-}
+import { FormFieldType } from "../../../enum/FormFieldTypes";
 
 const publicationOptions = [
   "artical",
@@ -43,6 +32,17 @@ const publicationOptions = [
   "code",
   "capter",
   "cover page",
+  "journal",
+  "magazine",
+  "thesis",
+  "dissertation",
+  "report",
+  "presentation",
+  "poster",
+  "project",
+  "software project",
+  "hardware project",
+  "App",
 ];
 
 const db = getFirestore();
@@ -67,7 +67,6 @@ const AddResearch = () => {
   }: z.infer<typeof EditFormValidation>) {
     setIsLoading(true);
     try {
-      // Register the user with Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         FIREBASE_AUTH,
         email,
@@ -81,8 +80,6 @@ const AddResearch = () => {
           email,
           phone,
         });
-
-        // Redirect or other post-registration logic
         router.push(`/users/${user.uid}/register`);
       }
     } catch (error) {
@@ -99,14 +96,14 @@ const AddResearch = () => {
         className="space-y-6 flex-1 bg-black p-8 w-2/3"
       >
         <section className="mb-12 space-y-4">
-          <h1 className="header">Add your research</h1>
+          <h1 className="header">Add your work</h1>
         </section>
         <div>
           <h3 className="mb-2 font-semibold">Publication Type</h3>
           <CustomFormField
             control={form.control}
             fieldType={FormFieldType.SEARCHABLE_SELECT}
-            name="degree"
+            name="type"
             placeholder="select type of your publication"
             options={publicationOptions}
           />
@@ -128,6 +125,16 @@ const AddResearch = () => {
             placeholder={"enter title of your work"}
           />
         </div>
+
+        <div>
+          <h3 className="mb-2 font-semibold">Description / Abstract</h3>
+          <CustomFormField
+            control={form.control}
+            fieldType={FormFieldType.TEXTAREA}
+            name="description"
+            placeholder={"enter description or the abstract of your work"}
+          />
+        </div>
         <div>
           <h3 className="mb-2 font-semibold">Authors</h3>
           <CustomFormField
@@ -139,8 +146,13 @@ const AddResearch = () => {
           />
         </div>
         <div>
-          <h3 className="mb-2 font-semibold">Date</h3>
-          <DatePickerShadCN />
+          <h3 className="mb-2 font-semibold">Date of Publication</h3>
+          <DatePickerShadCN
+            date={new Date()}
+            setDate={function (value: SetStateAction<Date | undefined>): void {
+              throw new Error("Function not implemented.");
+            }}
+          />
         </div>
         <div>
           <div className="flex flex-wrap items-center gap-5">
@@ -166,7 +178,7 @@ const AddResearch = () => {
           <CustomFormField
             control={form.control}
             fieldType={FormFieldType.INPUT}
-            placeholder="Enter DOI of work"
+            placeholder="Enter DOI of work, add github link or any other link"
             name="doi"
           />
         </div>

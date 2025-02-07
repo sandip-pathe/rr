@@ -1,39 +1,21 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
 } from "@/components/ui/card";
 import React from "react";
 
-interface ResearchItem {
-  title: string;
-  type: string; // e.g., Article, Conference Paper
-  date: string; // Publication date
-  reads: number; // Number of reads
-  citations: number; // Number of citations
-  authors?: string[];
-}
-
 interface UserProfile {
   name: string;
   degree: string;
-  position: string;
+  role: string;
   institution: string;
   location: string;
-  researchInterestScore: number;
-  citations: number;
-  hIndex: number;
+  photoURL: string;
   introduction: string;
-  disciplines: string[];
+  desciplines: string[];
   skills: string[];
-  activity: {
-    researchItems: ResearchItem[];
-    questions: number;
-    answers: number;
-  };
   coAuthors: string[];
   followers: string[];
 }
@@ -52,8 +34,8 @@ const PeopleProfileCard = (userProfile: UserProfile) => {
       <CardContent>
         <h4 className="mt-4 font-semibold text-gray-400">Disciplines</h4>
         <ul className="list-disc list-inside flex flex-wrap gap-2">
-          {userProfile.disciplines.map((discipline, index) => (
-            <li key={index}>{discipline}</li>
+          {userProfile.desciplines.map((descipline, index) => (
+            <li key={index}>{descipline}</li>
           ))}
         </ul>
         <h4 className="mt-4 font-semibold text-gray-400">
@@ -67,11 +49,6 @@ const PeopleProfileCard = (userProfile: UserProfile) => {
           ))}
         </ul>
         <h4 className="mt-4 font-semibold text-gray-400">Activities</h4>
-        <p>
-          {userProfile.activity.researchItems.length} Research Items,{" "}
-          {userProfile.activity.questions} Questions,{" "}
-          {userProfile.activity.answers} Answers
-        </p>
       </CardContent>
     </Card>
   );

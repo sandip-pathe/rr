@@ -9,27 +9,15 @@ import SubmitButton from "../SubmitButton";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { FIREBASE_AUTH } from "@/FirebaseConfig";
-import { doc, getFirestore, setDoc } from "firebase/firestore";
+import { FIREBASE_AUTH, FIREBASE_DB } from "@/FirebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
 import { RegisterFormValidation } from "@/lib/Validation";
-
-export enum FormFieldType {
-  INPUT = "input",
-  TEXTAREA = "textarea",
-  PHONE_INPUT = "phoneInput",
-  CHECKBOX = "checkbox",
-  DATE_PICKER = "datePicker",
-  SELECT = "select",
-  SKELETON = "skeleton",
-  SEARCHABLE_SELECT = "searchableSelect",
-  M_SEARCHABLE_SELECT = "mSearchableSelect",
-}
-
-const db = getFirestore();
+import { FormFieldType } from "../../enum/FormFieldTypes";
 
 const ProfileForm = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof RegisterFormValidation>>({
     resolver: zodResolver(RegisterFormValidation),
@@ -46,8 +34,9 @@ const ProfileForm = () => {
     password,
   }: z.infer<typeof RegisterFormValidation>) {
     setIsLoading(true);
+    setError(null);
+
     try {
-      console.log("Before CreateUser");
       const userCredential = await createUserWithEmailAndPassword(
         FIREBASE_AUTH,
         email,
@@ -56,15 +45,19 @@ const ProfileForm = () => {
       const user = userCredential.user;
 
       if (user) {
-        await setDoc(doc(db, "users", user.uid), {
+        await setDoc(doc(FIREBASE_DB, "users", user.uid), {
+          uid: user.uid,
           name,
           email,
+          photoURL: user.photoURL || "",
+          createdAt: new Date(),
+          role: "user",
         });
-
         router.push(`/users/${user.uid}/register`);
       }
     } catch (error) {
-      console.log("Error registering user:", error);
+      console.error("Error registering user:", error);
+      setError("Failed to register. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +70,10 @@ const ProfileForm = () => {
           <h1 className="header">Hi there 👋</h1>
           <p className="text-dark-700">Join Community of 1000+ researchers</p>
         </section>
+
+        {/* Show Error if Registration Fails */}
+        {error && <p className="text-red-600">{error}</p>}
+
         <CustomFormField
           fieldType={FormFieldType.INPUT}
           name="name"

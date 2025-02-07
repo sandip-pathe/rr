@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import CustomFormField from "@/components/CustomFormField";
 import { Form } from "@/components/ui/form";
-import { FormFieldType } from "@/components/forms/NewRegisterForm";
+import { FormFieldType } from "@/enum/FormFieldTypes";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import DatePickerShadCN from "@/components/DatePicker";
 

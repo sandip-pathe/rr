@@ -16,8 +16,10 @@ import { useAuth } from "@/app/auth/AuthContext";
 
 interface UserProfile {
   name: string;
+  email: string;
   degree: string;
   role: string;
+  position: string;
   institution: string;
   location: string;
   photoURL: string;
@@ -26,6 +28,7 @@ interface UserProfile {
   skills: string[];
   coAuthors: string[];
   followers: string[];
+  uid: string;
 }
 
 const UserProfileComponent = () => {
@@ -89,7 +92,7 @@ const UserProfileComponent = () => {
                 Edit
               </Button>
             </div>
-            <p>{userProfile.role}</p>
+            <p>{userProfile.position}</p>
             <h2 className="text-lg">
               {userProfile.degree} - {userProfile.institution}
             </h2>
@@ -103,27 +106,14 @@ const UserProfileComponent = () => {
         </div>
         {/*Edit Profile Modal */}
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          <div className="bg-black w-2/3 m-auto mt-12 ">
-            <EditMainUserComponent />
-            <Button
-              onClick={() => setIsModalOpen(false)}
-              className="ml-6 mb-6 bg-transparent text-white p-2 hover:bg-dark-300"
-            >
-              Cancel
-            </Button>
+          <div className="flex flex-col h-full flex-1 overflow-y-auto p-4">
+            <EditMainUserComponent onClose={() => setIsModalOpen(false)} />
           </div>
         </Modal>
 
-        {/*Add Research Modal */}
         <Modal isOpen={isModal2Open} onClose={() => setIsModal2Open(false)}>
-          <div className="bg-black w-2/3 m-auto mt-12 ">
-            <AddResearch />
-            <Button
-              onClick={() => setIsModal2Open(false)}
-              className="ml-6 mb-6 bg-transparent text-white p-2 hover:bg-dark-300"
-            >
-              Cancel
-            </Button>
+          <div className="flex flex-col h-full flex-1 overflow-y-auto p-4">
+            <AddResearch onClick={() => setIsModal2Open(false)} />
           </div>
         </Modal>
 
@@ -172,7 +162,7 @@ const UserProfileComponent = () => {
 
           {/*Research Work */}
           <div className="w-2/3">
-            {user && <ResearchWork userId={userProfile.name} />}
+            {user && <ResearchWork userId={userProfile.uid} />}
           </div>
 
           {/*Followers */}

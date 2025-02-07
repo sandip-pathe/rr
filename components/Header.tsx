@@ -18,14 +18,14 @@ const Header = () => {
 
   const handleLogout = async () => {
     await logout();
-    router.push("/login"); // Redirect to login after logout
+    router.push("/");
   };
 
   return (
     <header className="bg-[#0b0b0A] text-white w-screen h-12 fixed z-10 flex-row flex justify-between pl-4 pr-4 border-b border-[#1f1f1e]">
       <div className="heading p-1 ml-20">
         <Image
-          src="/assets/icons/Logomark.svg"
+          src="/assets/icons/logow.svg"
           height={1000}
           width={1000}
           alt="logo"

@@ -49,9 +49,7 @@ const ProfileForm = () => {
           uid: user.uid,
           name,
           email,
-          photoURL: user.photoURL || "",
           createdAt: new Date(),
-          role: "user",
         });
         router.push(`/users/${user.uid}/register`);
       }

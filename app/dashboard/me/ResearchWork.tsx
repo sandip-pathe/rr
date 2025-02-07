@@ -9,6 +9,7 @@ import React, { useEffect, useState } from "react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/auth/AuthContext";
 
 interface ResearchItem {
   title: string;

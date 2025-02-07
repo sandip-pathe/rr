@@ -1,37 +1,34 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { FIREBASE_DB } from "@/FirebaseConfig";
 import { Form } from "@/components/ui/form";
 import CustomFormField from "@/components/CustomFormField";
 import SubmitButton from "@/components/SubmitButton";
-import { useState } from "react";
-import { EditFormValidation } from "@/lib/Validation";
-import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { FIREBASE_AUTH } from "@/FirebaseConfig";
-import { doc, getFirestore, setDoc } from "firebase/firestore";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { FaAngleDown } from "react-icons/fa";
+import { useAuth } from "@/app/auth/AuthContext";
+import { FormFieldType } from "@/enum/FormFieldTypes";
+import { IoClose } from "react-icons/io5";
 
-export enum FormFieldType {
-  INPUT = "input",
-  TEXTAREA = "textarea",
-  PHONE_INPUT = "phoneInput",
-  CHECKBOX = "checkbox",
-  DATE_PICKER = "datePicker",
-  SELECT = "select",
-  SKELETON = "skeleton",
-  SEARCHABLE_SELECT = "searchableSelect",
+interface EditUserFormData {
+  name: string;
+  introduction: string;
+  degree: string;
+  website: string;
+  institution: string;
+  department: string;
+  position: string;
+  location: string;
 }
 
+// Degree options list
 const degreeOptions = [
   "Bachelor of Science",
   "Bachelor of Arts",
@@ -41,81 +38,114 @@ const degreeOptions = [
   "Doctor of Philosophy",
 ];
 
-const db = getFirestore();
+interface Props {
+  onClose: () => void;
+}
 
-const EditMainUserComponent = () => {
+const EditMainUserComponent = ({ onClose }: React.PropsWithChildren<Props>) => {
   const router = useRouter();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof EditFormValidation>>({
-    resolver: zodResolver(EditFormValidation),
+  // React Hook Form with TypeScript integration
+  const form = useForm<EditUserFormData>({
     defaultValues: {
       name: "",
-      email: "",
-      phone: "",
+      introduction: "",
+      degree: "",
+      website: "",
+      institution: "",
+      department: "",
+      position: "",
+      location: "",
     },
   });
 
-  async function onSubmit({
-    name,
-    email,
-    phone,
-  }: z.infer<typeof EditFormValidation>) {
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const fetchUserData = async () => {
+      try {
+        const userRef = doc(FIREBASE_DB, "users", user.uid);
+        const docSnap = await getDoc(userRef);
+
+        if (docSnap.exists()) {
+          const userData = docSnap.data() as Partial<EditUserFormData>;
+
+          form.reset({
+            name: userData.name || "",
+            introduction: userData.introduction || "",
+            degree: userData.degree || "",
+            website: userData.website || "",
+            institution: userData.institution || "",
+            department: userData.department || "",
+            position: userData.position || "",
+            location: userData.location || "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, [user?.uid, form]);
+
+  // Submit function with TypeScript type enforcement
+  const onSubmit: SubmitHandler<EditUserFormData> = async (data) => {
+    if (!user?.uid) return;
+
     setIsLoading(true);
     try {
-      // Register the user with Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(
-        FIREBASE_AUTH,
-        email,
-        "default_password"
-      );
-      const user = userCredential.user;
+      const userRef = doc(FIREBASE_DB, "users", user.uid);
+      await updateDoc(userRef, { ...data });
 
-      if (user) {
-        await setDoc(doc(db, "users", user.uid), {
-          name,
-          email,
-          phone,
-        });
-
-        // Redirect or other post-registration logic
-        router.push(`/users/${user.uid}/register`);
-      }
+      onClose();
     } catch (error) {
-      console.log("Error registering user:", error);
+      console.error("Error updating profile:", error);
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 flex-1 bg-black p-8 pb-0"
+        className="space-y-6 flex-1 bg-black p-8 pb-0 scroll-auto"
       >
-        <section className="mb-12 space-y-4">
+        <section className="mb-10 space-y-4">
+          <span className="relative flex justify-end">
+            <button
+              type="button"
+              className="text-white text-xl font-semibold"
+              onClick={onClose}
+            >
+              <IoClose />
+            </button>
+          </span>
           <h1 className="header">Edit Profile Details</h1>
         </section>
+
         <div>
-          <h3 className="mb-2 font-semibold">Degree</h3>
-          <CustomFormField
-            control={form.control}
-            fieldType={FormFieldType.SEARCHABLE_SELECT}
-            name="degree"
-            placeholder="Enter or select your degree"
-            options={degreeOptions}
-          />
-        </div>
-        <div>
-          <h3 className="mb-2 font-semibold">Current Activity</h3>
+          <h3 className="mb-2 font-semibold">Status/Activity</h3>
           <CustomFormField
             control={form.control}
             fieldType={FormFieldType.TEXTAREA}
-            name="description"
-            placeholder="Looking for collaborators, a new postion, feedback, or something else? Enter your current activity to let people know"
+            name="introduction"
+            placeholder="Looking for collaborators, a new position, feedback, or something else?"
           />
         </div>
+
+        <div>
+          <h3 className="my-2 font-semibold">Position</h3>
+          <CustomFormField
+            control={form.control}
+            fieldType={FormFieldType.INPUT}
+            name="position"
+          />
+        </div>
+
         <div>
           <h3 className="mb-2 font-semibold">Personal Website</h3>
           <CustomFormField
@@ -125,9 +155,10 @@ const EditMainUserComponent = () => {
             placeholder="Add link to your website"
           />
         </div>
+
         <Collapsible>
-          <CollapsibleTrigger className="text-sm text-gray-400 flex felx-wrap items-center">
-            Edit name and other details
+          <CollapsibleTrigger className="text-sm text-blue-400 flex items-center">
+            Edit name and other details ▼
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div>
@@ -157,11 +188,13 @@ const EditMainUserComponent = () => {
               />
             </div>
             <div>
-              <h3 className="my-2 font-semibold">Position</h3>
+              <h3 className="mb-2 font-semibold">Degree</h3>
               <CustomFormField
                 control={form.control}
-                fieldType={FormFieldType.INPUT}
-                name="position"
+                fieldType={FormFieldType.SEARCHABLE_SELECT}
+                name="degree"
+                placeholder="Enter or select your degree"
+                options={degreeOptions}
               />
             </div>
             <div>
@@ -172,17 +205,10 @@ const EditMainUserComponent = () => {
                 name="location"
               />
             </div>
-            <div>
-              <h3 className="my-2 font-semibold">Description</h3>
-              <CustomFormField
-                control={form.control}
-                fieldType={FormFieldType.TEXTAREA}
-                placeholder="Describe Your role"
-              />
-            </div>
           </CollapsibleContent>
         </Collapsible>
-        <div className="flex-wrap flex gap-5">
+
+        <div className="flex flex-wrap gap-5">
           <SubmitButton
             className="w-fit p-4 rounded-none"
             isLoading={isLoading}

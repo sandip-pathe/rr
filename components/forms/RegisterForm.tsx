@@ -55,6 +55,12 @@ const RegisterForm = () => {
         degree,
         role,
         introduction,
+        location: "",
+        institution: "Vidyalankar Institute of Technology",
+        institutionId: "9hGWzNPZ1oMKTCJxffKy",
+        department: "",
+        skills: [],
+        desciplines: [],
       });
 
       router.push(`/dashboard/projects`);
@@ -72,7 +78,6 @@ const RegisterForm = () => {
           <h1 className="header">Hi there 👋</h1>
           <p className="text-dark-700">Just a Few More Details</p>
         </section>
-
         <div>
           <h3 className="mb-2 font-semibold">Degree</h3>
           <CustomFormField
@@ -83,7 +88,6 @@ const RegisterForm = () => {
             options={degreeOptions}
           />
         </div>
-
         <div>
           <h3 className="my-2 font-semibold">Role</h3>
           <RadioGroup

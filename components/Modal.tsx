@@ -12,9 +12,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
     <Dialog
       open={isOpen}
       onClose={onClose}
-      className="fixed z-10 inset-0 overflow-y-auto bg-black/75"
+      className="fixed z-10 inset-0 overflow-y-auto bg-white/20"
     >
-      {children}
+      <div className="bg-black rounded-lg shadow-lg w-[60%] h-[90vh] overflow-hidden self-center m-auto mt-10 z-100">
+        {children}
+      </div>
     </Dialog>
   );
 };

@@ -1,10 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardFooter,
@@ -13,170 +11,220 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { AvatarFallback } from "@radix-ui/react-avatar";
-import { FaReply, FaShare, FaCommentAlt } from "react-icons/fa"; // Import icons
+import { FaReply, FaShare, FaCommentAlt } from "react-icons/fa";
 import Spiner from "@/components/Spiner";
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  startAfter,
+} from "firebase/firestore";
+import { FIREBASE_DB } from "@/FirebaseConfig";
 
 interface Question {
-  id: number;
+  id: string;
   title: string;
-  content: string;
-  author: string;
-  created_at: string;
+  description: string;
+  authorName: string;
+  created_at: Date;
   answers: { content: string; author: string }[];
 }
 
+const PAGE_SIZE = 5;
+
 const AMA = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
-
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const observer = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
 
-  // Dummy data for research, innovation, and publication settings
-  const dummyData: Question[] = [
-    {
-      id: 1,
-      title:
-        "How to enhance collaboration between academia and industry in research?",
-      content:
-        "Hey everyone! I’m looking for some advice on navigating serious relationships as a spicy creator, and I wanted to share my journey. Few months ago I met someone who I really clicked with—great conversations, lots of laughter, and a genuine connection. However, once I revealed my work, things got a bit complicated. He was initially intrigued but soon became hesitant. We had an honest conversation about it, and I explained how my job empowers me and doesn’t define my worth. I thought we were on the same page, but I could see he was still struggling with the idea. After a few dates, it became clear that while he liked me, he was unsure if he could fully accept my lifestyle. It was tough because I really liked him, but I knew I needed someone who could embrace all of me.",
-      author: "Dr. Smith",
-      created_at: "2024-10-01",
-      answers: [
-        {
-          content:
-            "One approach is to establish research centers funded by industry. This provides resources for both parties and creates more collaboration opportunities.",
-          author: "Prof. John Doe",
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: "What are the key metrics to measure innovation in research?",
-      content:
-        "How can research labs and universities measure innovation effectively? Are there any standard metrics?",
-      author: "Dr. Emma Watson",
-      created_at: "2024-09-29",
-      answers: [
-        {
-          content:
-            "Patents, number of publications, and collaborations with industry are some common metrics to measure innovation in research.",
-          author: "Prof. Mark Henry",
-        },
-        {
-          content:
-            "In addition, evaluating the societal impact and technology transfer rate can be good indicators.",
-          author: "Dr. Emily Clark",
-        },
-      ],
-    },
-    {
-      id: 3,
-      title: "What role does AI play in academic publications?",
-      content:
-        "How is AI transforming the process of writing and reviewing academic papers in scientific journals?",
-      author: "Dr. Alan Turing",
-      created_at: "2024-10-10",
-      answers: [
-        {
-          content:
-            "AI can help automate parts of the peer-review process and assist researchers in literature reviews by summarizing large sets of data.",
-          author: "Prof. Ada Lovelace",
-        },
-      ],
-    },
-    {
-      id: 4,
-      title: "How to publish research papers in top-tier journals?",
-      content:
-        "What are some tips for researchers aiming to get their papers published in top-tier journals like Nature and IEEE?",
-      author: "Dr. Michael Lee",
-      created_at: "2024-10-05",
-      answers: [
-        {
-          content:
-            "Focus on solving novel problems, ensure your research is well-structured, and follow the submission guidelines carefully.",
-          author: "Dr. Katherine Johnson",
-        },
-        {
-          content:
-            "Collaborating with well-established researchers in your field also boosts your chances.",
-          author: "Prof. Neil deGrasse Tyson",
-        },
-      ],
-    },
-  ];
-
   useEffect(() => {
-    // Simulate fetching dummy data
-    setQuestions(dummyData);
+    const fetchQuestions = async () => {
+      setInitialLoading(true);
+      const q = query(
+        collection(FIREBASE_DB, "ama"),
+        orderBy("created_at", "desc"),
+        limit(PAGE_SIZE)
+      );
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        setQuestions(
+          querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            created_at: doc.data().created_at.toDate(),
+          })) as Question[]
+        );
+        setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+      } else {
+        setHasMore(false);
+      }
+      setInitialLoading(false);
+    };
+
+    fetchQuestions();
   }, []);
 
-  const handleAskPage = () => {
-    router.push("ama/ask");
+  const fetchMoreQuestions = async () => {
+    if (!lastDoc || !hasMore || loadingMore) return;
+    setLoadingMore(true);
+
+    const q = query(
+      collection(FIREBASE_DB, "ama"),
+      orderBy("created_at", "desc"),
+      startAfter(lastDoc),
+      limit(PAGE_SIZE)
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      setQuestions((prev) => [
+        ...prev,
+        ...querySnapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+              created_at: doc.data().created_at.toDate(),
+            } as Question)
+        ),
+      ]);
+      setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+    } else {
+      setHasMore(false);
+    }
+    setLoadingMore(false);
   };
 
-  const handleOpenQuestion = (id: number) => {
+  const lastQuestionRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (initialLoading || loadingMore || !hasMore) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          fetchMoreQuestions();
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [initialLoading, loadingMore, hasMore]
+  );
+
+  const formatDate = (timestamp: any): string => {
+    let date: Date;
+    if (timestamp && typeof timestamp.toDate === "function") {
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffInSeconds < 60) return "just now";
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 10) return `${diffInDays} days ago`;
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const handleOpenQuestion = (id: string) => {
     router.push(`ama/${id}`);
+  };
+
+  const handleNewQuestion = () => {
+    router.push("ama/ask");
   };
 
   return (
     <Layout>
       <div className="flex flex-row">
-        <div className="w-2/3 ml-10 mt-5 p-6">
-          <h1 className="text-2xl font-bold mb-4">Ask Me Anything (AMA)</h1>
-          <div className="mb-6">
-            <Button
-              className="text-blue-700 hover:underline"
-              onClick={handleAskPage}
-            >
-              Ask a New Question
-            </Button>
-          </div>
+        <div className="w-2/3 ml-10 mt-5">
+          <h1 className="text-2xl font-semibold text-gray-300">
+            Ask Me Anything
+          </h1>
+          <button
+            onClick={handleNewQuestion}
+            className="text-white hover:text-gray-400 select-none cursor-pointer bg-[#333] px-4 py-2 rounded-md mt-4"
+          >
+            Ask a question
+          </button>
 
-          {questions.length > 0 ? (
-            questions.map((question) => (
-              <div
-                className="my-10 hover:bg-gray-700 hover:cursor-pointer"
-                onClick={() => handleOpenQuestion(question.id)}
-              >
-                <CardHeader className="p-0 flex flex-row items-center gap-4 justify-start">
-                  <Avatar className="h-8 w-8 bg-gray-800 overflow-clip">
-                    <AvatarImage
-                      src="https://placehold.co/400"
-                      className="overflow-auto "
-                    />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <CardTitle className="font-medium text-base text-gray-100">
-                    {question.author}
-                  </CardTitle>
-                  <CardDescription className="text-gray-500 text-sm">
-                    {"• "}
-                    {new Date(question.created_at).toLocaleDateString()}
-                  </CardDescription>
-                </CardHeader>
-                <CardTitle className="py-2 text-xl font-medium">
-                  {question.title}
-                </CardTitle>
-                <CardContent className="pb-2 px-0">
-                  <p className="text-white text-sm font-normal line-clamp-3">
-                    {question.content}
-                  </p>
-                </CardContent>
-                <CardFooter className="flex space-x-4 p-0 text-gray-400 text-sm">
-                  <button className="flex items-center gap-2">
-                    <FaReply /> Reply
-                  </button>
-                  <button className="flex items-center gap-2">
-                    <FaShare /> Share
-                  </button>
-                  <button className="flex items-center gap-2">
-                    <FaCommentAlt />
-                  </button>
-                </CardFooter>
-              </div>
-            ))
-          ) : (
+          {initialLoading ? (
             <Spiner />
+          ) : questions.length > 0 ? (
+            <>
+              {questions.map((q, index) => (
+                <div
+                  key={q.id}
+                  className="my-10 hover:bg-gray-700 hover:cursor-pointer hover:rounded-lg p-3"
+                  onClick={() => handleOpenQuestion(q.id)}
+                  ref={index === questions.length - 1 ? lastQuestionRef : null}
+                >
+                  <CardHeader className="p-0 flex flex-row items-center gap-2 justify-start">
+                    <Avatar className="h-8 w-8 bg-gray-800 overflow-clip">
+                      <AvatarImage
+                        src="https://placehold.co/400"
+                        className="overflow-auto"
+                      />
+                      <AvatarFallback>CN</AvatarFallback>
+                    </Avatar>
+                    <CardTitle className="font-medium text-base text-gray-400">
+                      {q.authorName?.toLowerCase()}
+                    </CardTitle>
+                    <CardDescription className="text-blue-500 text-sm">
+                      {formatDate(q.created_at)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardTitle className="py-2 text-xl font-medium text-gray-300">
+                    {q.title}
+                  </CardTitle>
+                  <CardContent className="pb-2 px-0">
+                    <p className="text-gray-400 text-xs font-normal line-clamp-6">
+                      {q.description}
+                    </p>
+                  </CardContent>
+                  <CardFooter className="flex space-x-4 p-0 text-gray-400 text-sm z-5">
+                    <button className="flex items-center gap-2">
+                      <FaReply /> Reply
+                    </button>
+                    <button className="flex items-center gap-2">
+                      <FaShare /> Share
+                    </button>
+                    <button className="flex items-center gap-2">
+                      <FaCommentAlt />
+                    </button>
+                  </CardFooter>
+                </div>
+              ))}
+              {loadingMore && <Spiner />}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full">
+              <p className="text-gray-400">No questions yet.</p>
+              <button
+                onClick={handleNewQuestion}
+                className="text-white hover:text-gray-400 select-none cursor-pointer bg-[#333] px-4 py-2 rounded-md mt-4"
+              >
+                Ask a question
+              </button>
+            </div>
           )}
         </div>
         <div className="w-1/3"></div>

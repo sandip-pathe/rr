@@ -1,27 +1,48 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import Editor from "react-markdown-editor-lite";
 import "react-markdown-editor-lite/lib/index.css";
-import { marked } from "marked"; // Use marked to parse markdown to HTML
+import { marked } from "marked";
 
-const MdEditorComponent = () => {
-  const mdEditor = React.useRef(null);
-  const [value, setValue] = React.useState("### Welcome to the AMA Editor");
+interface Props {
+  onChange: (value: string) => void;
+}
 
-  // Handle changes in the editor
-  const handleEditorChange = ({ text }: any) => {
+const MdEditorComponent: React.FC<Props> = ({ onChange }) => {
+  const mdEditor = useRef(null);
+  const [value, setValue] = useState("");
+
+  const handleEditorChange = ({ text }: { text: string }) => {
     setValue(text);
+    onChange(text);
   };
 
   return (
-    <div>
-      <Editor
-        className="min-h-[350px] rounded-lg flex flex-col items-center justify-center py-10 px-6"
-        ref={mdEditor}
-        value={value}
-        onChange={handleEditorChange}
-        renderHTML={(text) => marked(text)}
-      />
-    </div>
+    <Editor
+      ref={mdEditor}
+      value={value}
+      onChange={handleEditorChange}
+      renderHTML={(text) => marked(text)}
+      className="border border-gray-600 rounded-lg bg-inherit text-white"
+      style={{ height: "350px" }}
+      placeholder="Write something in Markdown..."
+      config={{
+        view: {
+          menu: true,
+          md: true,
+          html: true,
+        },
+        canView: {
+          menu: true,
+          md: true,
+          html: true,
+          fullScreen: true,
+          hideMenu: false,
+        },
+        markdownClass: "prose prose-invert",
+        imageUrl: "",
+        shortcuts: true,
+      }}
+    />
   );
 };
 

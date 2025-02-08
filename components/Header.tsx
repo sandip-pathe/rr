@@ -13,7 +13,7 @@ import { useAuth } from "@/app/auth/AuthContext";
 import { useRouter } from "next/navigation";
 
 const Header = () => {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, name, role } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -45,14 +45,17 @@ const Header = () => {
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuLabel className="flex items-center flex-col">
-            <div className="flex flex-col">
-              <p className="text-sm font-semibold">
-                {user?.displayName || "User"}
-              </p>
-              <p className="text-xs">{user?.email}</p>
-            </div>
-          </DropdownMenuLabel>
+          {loading ? (
+            <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+          ) : (
+            <DropdownMenuLabel className="flex items-center flex-col">
+              <div className="flex flex-col">
+                <p className="text-sm font-semibold">{name || "User"}</p>
+                <p className="text-xs">{user?.email}</p>
+                <p className="text-xs text-gray-400">{role}</p>
+              </div>
+            </DropdownMenuLabel>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>

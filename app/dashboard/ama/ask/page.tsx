@@ -1,6 +1,5 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Form } from "@/components/ui/form";
@@ -9,12 +8,13 @@ import CustomFormField from "@/components/CustomFormField";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AMAAskFormValidation } from "@/lib/Validation";
-import MarkdownEditor from "react-markdown-editor-lite";
-import "react-markdown-editor-lite/lib/index.css"; // Import editor styles
-import { useDropzone } from "react-dropzone";
-import { HtmlType } from "react-markdown-editor-lite/cjs/editor/preview";
 import MdEditorComponent from "./Md";
 import Layout from "@/components/Layout";
+import { addDoc, collection, Timestamp } from "firebase/firestore";
+import { useDropzone } from "react-dropzone";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { FIREBASE_DB } from "@/FirebaseConfig";
+import { useAuth } from "@/app/auth/AuthContext";
 
 export enum FormFieldType {
   INPUT = "input",
@@ -24,24 +24,23 @@ export enum FormFieldType {
 const AskQuestionsPage = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null); // For error handling
-  const [markdownContent, setMarkdownContent] = useState(""); // Markdown content state
-  const [uploadedImages, setUploadedImages] = useState<File[]>([]); // State for uploaded images
+  const [error, setError] = useState<string | null>(null);
+  const [markdownContent, setMarkdownContent] = useState("");
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const { user, name, loading } = useAuth();
 
   const form = useForm<z.infer<typeof AMAAskFormValidation>>({
     resolver: zodResolver(AMAAskFormValidation),
     defaultValues: {
-      question: "",
+      title: "",
       description: "",
     },
   });
 
-  // Handle Markdown editor changes
-  const handleEditorChange = ({ text }: any) => {
-    setMarkdownContent(text);
+  const handleValueChange = (value: string) => {
+    setMarkdownContent(value);
   };
 
-  // Image upload using react-dropzone
   const onDrop = (acceptedFiles: File[]) => {
     setUploadedImages((prevImages) => [...prevImages, ...acceptedFiles]);
   };
@@ -51,23 +50,24 @@ const AskQuestionsPage = () => {
     multiple: true,
   });
 
-  async function onSubmit({
-    question,
-    description,
-  }: z.infer<typeof AMAAskFormValidation>) {
+  async function onSubmit({ title }: z.infer<typeof AMAAskFormValidation>) {
     setIsLoading(true);
     setError(null);
     try {
+      const imageUrls = "NoURL";
       const postData = {
-        question,
-        description: markdownContent, // Save Markdown content in description
-        images: uploadedImages, // You will need to handle image uploads here
+        title,
+        description: markdownContent,
+        images: imageUrls,
+        authorId: user?.uid,
+        authorName: name,
+        created_at: Timestamp.now(),
       };
 
-      // Add your submission logic here
-      console.log(postData);
+      await addDoc(collection(FIREBASE_DB, "ama"), postData);
+      router.push("/dashboard/ama");
     } catch (error) {
-      console.log(error);
+      console.error(error);
       setError("Failed to submit the post.");
     } finally {
       setIsLoading(false);
@@ -79,30 +79,27 @@ const AskQuestionsPage = () => {
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-6 flex-1 w-2/3 items-center justify-center ml-24 my-3"
+          className="space-y-6 flex-1 w-2/3 ml-24 my-3"
         >
           <section className="space-y-4">
             <h1 className="font-bold text-2xl text-gray-500">Create Post</h1>
           </section>
-          {error && <p className="text-red-600">{error}</p>}{" "}
-          {/* Display error message if submission fails */}
+          {error && <p className="text-red-600">{error}</p>}
           <CustomFormField
             fieldType={FormFieldType.INPUT}
-            name="question"
+            name="title"
             label="Title"
             placeholder="Title"
             control={form.control}
           />
           <div className="mb-4">
-            <label
-              htmlFor="markdown-content"
-              className="block mb-2 text-sm font-medium text-gray-200"
-            >
+            <label className="block mb-2 text-sm font-medium text-gray-200">
               Description (Markdown Supported)
             </label>
-            <MdEditorComponent />
+            <MdEditorComponent onChange={handleValueChange} />
           </div>
-          {/* Image Upload */}
+
+          {/* Image Upload
           <div className="mb-4">
             <label className="block mb-2 text-sm font-medium text-gray-200">
               Upload Images
@@ -126,10 +123,10 @@ const AskQuestionsPage = () => {
                 />
               ))}
             </div>
-          </div>
-          <div className="gap-5 justify-end w-auto flex flex-row">
+          </div> */}
+
+          <div className="gap-5 justify-end flex">
             <SubmitButton isLoading={isLoading}>Submit</SubmitButton>
-            <SubmitButton isLoading={isLoading}>Draft</SubmitButton>
           </div>
         </form>
       </Form>

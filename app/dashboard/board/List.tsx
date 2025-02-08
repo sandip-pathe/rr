@@ -238,8 +238,10 @@ const List = () => {
           }}
           defaultValue={selectedProject}
         >
-          <SelectTrigger className="font-bold w-[240px] mr-5 gap-3 bg-inherit border-none text-white">
-            <SelectValue placeholder="Select Project" />
+          <SelectTrigger className="font-bold w-[240px] bg-inherit border-none text-white">
+            <SelectValue
+              placeholder={selectedProject.slice(0, 20) || "Select Project"}
+            />
           </SelectTrigger>
           <SelectContent className="border-none">
             {projects.map((project) => (

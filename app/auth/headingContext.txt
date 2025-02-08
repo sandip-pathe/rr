@@ -1,0 +1,236 @@
+Below is one approach that uses a dedicated context and IntersectionObserver to detect when the page heading is scrolled out of view and then shows that heading in the header. In addition, we add a universal search state in the header. The solution is broken into three parts:
+
+---
+
+### 1. Create a “Page Heading Context”
+
+This context holds the current page heading text and its visibility.
+
+```tsx
+// contexts/PageHeadingContext.tsx
+import { createContext, useContext, useState } from "react";
+
+interface PageHeadingContextType {
+  heading: string;
+  setHeading: (heading: string) => void;
+  isVisible: boolean;
+  setIsVisible: (visible: boolean) => void;
+}
+
+const PageHeadingContext = createContext<PageHeadingContextType | undefined>(undefined);
+
+export const PageHeadingProvider = ({ children }: { children: React.ReactNode }) => {
+  const [heading, setHeading] = useState("");
+  const [isVisible, setIsVisible] = useState(true);
+
+  return (
+    <PageHeadingContext.Provider value={{ heading, setHeading, isVisible, setIsVisible }}>
+      {children}
+    </PageHeadingContext.Provider>
+  );
+};
+
+export const usePageHeading = () => {
+  const context = useContext(PageHeadingContext);
+  if (!context) throw new Error("usePageHeading must be used within a PageHeadingProvider");
+  return context;
+};
+```
+
+---
+
+### 2. Wrap Your Layout with the Provider
+
+Make sure your entire app (or at least the part that needs this functionality) is wrapped by the provider.
+
+```tsx
+// Layout.tsx
+import Header from "./Header";
+import Sidebar from "./Sidebar";
+import { PageHeadingProvider } from "@/contexts/PageHeadingContext";
+
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <PageHeadingProvider>
+      <Header />
+      <div className="flex overflow-auto">
+        <Sidebar />
+        <main className="flex-grow ml-20 mt-12">{children}</main>
+      </div>
+    </PageHeadingProvider>
+  );
+};
+
+export default Layout;
+```
+
+---
+
+### 3. Update the Page and Header Components
+
+#### **(a) In Your Page Component**
+
+Wrap your page heading with a ref and use an IntersectionObserver to update the context. For example, in a dashboard page:
+
+```tsx
+// pages/Dashboard.tsx
+"use client";
+
+import { useEffect, useRef } from "react";
+import { usePageHeading } from "@/contexts/PageHeadingContext";
+
+const DashboardPage = () => {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const { setHeading, setIsVisible } = usePageHeading();
+
+  useEffect(() => {
+    if (!headingRef.current) return;
+
+    // Set the heading text initially.
+    setHeading(headingRef.current.innerText);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Update visibility based on whether the heading is intersecting
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(headingRef.current);
+
+    return () => {
+      if (headingRef.current) observer.unobserve(headingRef.current);
+    };
+  }, [setHeading, setIsVisible]);
+
+  return (
+    <div>
+      <h1 ref={headingRef} className="text-3xl font-bold mb-4">
+        Dashboard
+      </h1>
+      {/* Page content goes here */}
+    </div>
+  );
+};
+
+export default DashboardPage;
+```
+
+#### **(b) In the Header Component**
+
+Read the heading text and visibility from the context and display it (for example, as a centered title) when the page heading is scrolled out of view. Also, add universal search functionality using local state.
+
+```tsx
+// Header.tsx
+"use client";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import Image from "next/image";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/app/auth/AuthContext";
+import { useRouter } from "next/navigation";
+import { usePageHeading } from "@/contexts/PageHeadingContext";
+import { useState } from "react";
+
+const Header = () => {
+  const { user, logout, loading, name, role } = useAuth();
+  const router = useRouter();
+  const { heading, isVisible } = usePageHeading();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+  };
+
+  // Example search handler (you may integrate API calls or filtering logic here)
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    // Trigger search functionality as needed
+  };
+
+  return (
+    <header className="bg-[#0b0b0A] text-white w-screen h-12 fixed z-10 flex items-center justify-between pl-4 pr-4 border-b border-[#1f1f1e]">
+      <div className="flex items-center space-x-4">
+        <div className="heading hidden md:block">
+          <Image
+            src="/assets/icons/logow.svg"
+            height={1000}
+            width={1000}
+            alt="logo"
+            className="h-10 w-fit"
+          />
+        </div>
+        {/* Universal search */}
+        <Input
+          className="w-96 h-8 bg-[#1f1f1e] text-white"
+          placeholder="Search (Alt+Shift+E)"
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+      </div>
+      
+      <div className="relative">
+        {/* Conditionally show page heading if not visible on page */}
+        {!isVisible && heading && (
+          <div className="absolute top-[-40px] left-1/2 transform -translate-x-1/2 text-lg font-bold">
+            {heading}
+          </div>
+        )}
+      </div>
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <Avatar className="h-8 w-8">
+            <AvatarImage src="https://github.com/shadcn.png" />
+            <AvatarFallback>CN</AvatarFallback>
+          </Avatar>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          {loading ? (
+            <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+          ) : (
+            <DropdownMenuLabel className="flex flex-col items-center">
+              <p className="text-sm font-semibold">{name || "User"}</p>
+              <p className="text-xs">{user?.email}</p>
+              <p className="text-xs text-gray-400">{role}</p>
+            </DropdownMenuLabel>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>Settings</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </header>
+  );
+};
+
+export default Header;
+```
+
+#### **(c) Universal Sidebar (Optional)**
+Your sidebar can remain unchanged if it’s universal.
+
+---
+
+### Summary
+1. **Page Heading Context:**  
+   - Tracks the heading text and its visibility using IntersectionObserver.
+2. **Page Components:**  
+   - Each page sets its heading text in the context and updates visibility.
+3. **Header Component:**  
+   - Reads from the context and conditionally displays the heading when scrolled out.
+   - Includes a universal search input (with local state) that you can extend with search logic.
+4. **Universal Sidebar:**  
+   - Remains as is.
+
+This setup ensures that when the page heading scrolls out of view, the header shows it—and the header also contains a universal search input to search for items across your app. Let me know if you have any questions or need further refinements!

@@ -104,6 +104,7 @@ const UserProfileComponent = () => {
             <span>h-index: {"7"}</span>
           </div>
         </div>
+
         {/*Edit Profile Modal */}
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
           <div className="flex flex-col h-full flex-1 overflow-y-auto p-4">

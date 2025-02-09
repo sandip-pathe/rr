@@ -92,9 +92,15 @@ const AddWork: React.FC<Props> = ({ onClick }) => {
         })
         .filter(Boolean);
 
+      const authorIds = selectedAuthors.reduce((acc: any, author: any) => {
+        acc[author.id] = true;
+        return acc;
+      }, {} as Record<string, boolean>);
+
       const workData = {
         ...data,
         authors: selectedAuthors,
+        authorIds,
         createdAt: new Date(),
         createdBy: user?.uid,
       };

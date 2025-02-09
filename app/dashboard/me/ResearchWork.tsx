@@ -17,9 +17,15 @@ interface ResearchItem {
   date: string;
   reads: number;
   citations: number;
-  authors?: string[];
+  authors?: Author[];
+  authorIds?: string[];
   abstract: string;
   doi: string;
+}
+
+interface Author {
+  name: string;
+  id: string;
 }
 
 interface ResearchWorkProps {
@@ -39,7 +45,7 @@ const ResearchWork: React.FC<ResearchWorkProps> = ({ userId }) => {
       try {
         const q = query(
           collection(FIREBASE_DB, "work"),
-          where("authors", "array-contains", userId)
+          where("authorIds", "array-contains", userId) // Works because it's a primitive array
         );
         const querySnapshot = await getDocs(q);
 
@@ -124,10 +130,10 @@ const ResearchWork: React.FC<ResearchWorkProps> = ({ userId }) => {
                       <Avatar className="w-6 h-6">
                         <AvatarImage />
                         <AvatarFallback className="bg-white text-[#252525] font-bold">
-                          {author.charAt(0)}
+                          {author?.name?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <p className="text-gray-300 text-sm">{author}</p>
+                      <p className="text-gray-300 text-sm">{author?.name}</p>
                     </span>
                   ))}
                 </div>

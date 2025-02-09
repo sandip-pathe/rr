@@ -1,144 +1,104 @@
+"use client";
+
 import Layout from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import React from "react";
-import ResearchWork from "./ResearchWork";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import PeopleProfileCard from "./UserProfile";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FaStickyNote } from "react-icons/fa";
-
-interface ResearchItem {
-  title: string;
-  type: string; // e.g., Article, Conference Paper
-  date: string; // Publication date
-  reads: number; // Number of reads
-  citations: number; // Number of citations
-  authors?: string[];
-}
+import Modal from "@/components/Modal";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import ResearchWork from "./ResearchWork";
+import { getDoc, doc } from "firebase/firestore";
+import { FIREBASE_DB } from "@/FirebaseConfig";
+import { useAuth } from "@/app/auth/AuthContext";
+import PeopleProfileCard from "./UserProfile";
+import { usePathname } from "next/navigation";
 
 interface UserProfile {
   name: string;
+  email: string;
   degree: string;
+  role: string;
   position: string;
   institution: string;
   location: string;
-  researchInterestScore: number;
-  citations: number;
-  hIndex: number;
+  photoURL: string;
   introduction: string;
-  disciplines: string[];
+  desciplines: string[];
   skills: string[];
-  activity: {
-    researchItems: ResearchItem[];
-    questions: number;
-    answers: number;
-  };
   coAuthors: string[];
   followers: string[];
+  uid: string;
 }
 
-const userProfile: UserProfile = {
-  name: "Manoj Suryawanshi",
-  degree: "ME (Etrx & Telecomm),University of Mumbai 2015",
-  position: "Assistant Professor at Vidyalankar Institute of Technology",
-  institution: "Vidyalankar Institute of Technology",
-  location: "Mumbai, India",
-  researchInterestScore: 3.4,
-  citations: 4,
-  hIndex: 145,
-  introduction: "Machine Learning, Python",
-  disciplines: ["Electronic Engineering"],
-  skills: [
-    "MATLAB Simulation",
-    "Python",
-    "Electronics and Communication Engineering",
-    "Electrical & Electronics Engineering",
-  ],
-  activity: {
-    researchItems: [
-      {
-        title:
-          "Performance Evaluation of Optimization Functions for Neural Network Classifier Using Decomposed Polsar Images",
-        type: "Conference Paper",
-        date: "July 2024",
-        reads: 12,
-        citations: 0,
-        authors: ["Akhil M", "Sandip P", "Arya M"],
-      },
-      {
-        title:
-          "Performance Evaluation of Optimization Functions for Neural Network Classifier Using Decomposed Polsar Images for Mangrove Detection",
-        type: "Conference Paper",
-        date: "July 2024",
-        reads: 2,
-        citations: 0,
-        authors: ["Varsha T", "Sandip P", "Arya M"],
-      },
-      {
-        title:
-          "Performance analysis of SAR filtering techniques using SVM and Wishart Classifier",
-        type: "Article",
-        date: "March 2024",
-        reads: 29,
-        citations: 2,
-      },
-      {
-        title:
-          "Development of Generalized Machine Learning Model to Classify PolSAR Data",
-        type: "Conference Paper",
-        date: "July 2023",
-        reads: 30,
-        citations: 0,
-      },
-      {
-        title: "NPK And Oxygen Regulation System for Hydroponics",
-        type: "Conference Paper",
-        date: "December 2021",
-        reads: 20,
-        citations: 1,
-      },
-    ],
-    questions: 0,
-    answers: 0,
-  },
-  coAuthors: [
-    "Rohin Daruwala",
-    "Varsha Turkar",
-    "Anup Kumar Das",
-    "Jay Hegshetye",
-    "Vedant Manoj Shirsekar",
-  ],
-  followers: ["Vedant Manoj Shirsekar", "Javed Patel", "Tanaya Palav"],
-};
-
 const UserProfileComponent = () => {
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const pathname = usePathname();
+  // const profileId = pathname.split("/").pop() as string;
+  const profileId = "NrfPWvY4LAZhdrWjH529ei989nN2";
+  const { user, name } = useAuth();
+
+  useEffect(() => {
+    if (!profileId) return;
+
+    setIsLoading(true);
+
+    const fetchUserProfile = async () => {
+      try {
+        const userDoc = await getDoc(doc(FIREBASE_DB, "users", profileId));
+        if (userDoc.exists()) {
+          setUserProfile(userDoc.data() as UserProfile);
+        } else {
+          console.warn("User profile not found!");
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
+  if (isLoading) return <div className="text-center p-10">Loading...</div>;
+
+  if (!userProfile) return <div className="text-center p-10"></div>;
+
   return (
     <Layout>
       <div className="p-8 space-y-6">
         <div className="bg-[#1f1f1e] pb-6 flex">
           <div>
-            <Avatar className="h-24 w-24 mr-5">
-              <AvatarImage src="https://vit.edu.in/images/FacultyETRX/l-manoj%20s.png" />
-              <AvatarFallback className="text-3xl font-black">
+            <Avatar
+              onClick={() => {
+                alert("Edit Avatar");
+              }}
+              className="h-24 w-24 mr-5 cursor-pointer"
+            >
+              <AvatarImage src={userProfile.photoURL} />
+              <AvatarFallback className="text-7xl font-black text-gray-500">
                 {userProfile.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
           </div>
           <div className="">
-            <h1 className="text-xl font-bold">{userProfile.name}</h1>
+            <div className="flex flex-wrap gap-5 items-center">
+              <h1 className="text-xl font-bold">{userProfile.name}</h1>
+            </div>
+            <p>{userProfile.position}</p>
             <h2 className="text-lg">
-              {userProfile.degree} - {userProfile.position}
+              {userProfile.degree} - {userProfile.institution}
             </h2>
             <p>{userProfile.location}</p>
           </div>
-          <div className="flex gap-1 flex-col ml-20">
-            <span>
-              Research Interest Score: {userProfile.researchInterestScore}
-            </span>
-            <span>Citations: {userProfile.citations}</span>
-            <span>h-index: {userProfile.hIndex}</span>
+          <div className="flex gap-1 flex-col mr-20 ml-auto">
+            <span>Research Interest Score: {"3"}</span>
+            <span>Citations: {"6"}</span>
+            <span>h-index: {"7"}</span>
           </div>
         </div>
+
         <div className="flex flex-wrap gap-5">
           <Button>Message</Button>
           <Button>Follow</Button>
@@ -148,9 +108,12 @@ const UserProfileComponent = () => {
         </div>
 
         <div className="flex flex-wrap gap-10">
+          {/*User Profile Component */}
           <div className="w-2/3">
             <PeopleProfileCard {...userProfile} />
           </div>
+
+          {/*Top Co-authors */}
           <div className="w-1/4">
             <Card className="bg-[#252525] border-0 ">
               <CardHeader>
@@ -174,8 +137,9 @@ const UserProfileComponent = () => {
             </Card>
           </div>
 
+          {/*Research Work */}
           <div className="w-2/3">
-            <ResearchWork {...userProfile.activity} />
+            {profileId && <ResearchWork userId={profileId} />}
           </div>
 
           <div className="w-1/4">

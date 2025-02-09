@@ -2,84 +2,164 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { FIREBASE_DB } from "@/FirebaseConfig";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/auth/AuthContext";
 
 interface ResearchItem {
   title: string;
-  type: string; // e.g., Article, Conference Paper
-  date: string; // Publication date
-  reads: number; // Number of reads
-  citations: number; // Number of citations
-  authors?: string[];
-}
-interface ActivityProps {
-  researchItems: ResearchItem[];
-  questions: number;
-  answers: number;
+  type: string;
+  date: string;
+  reads: number;
+  citations: number;
+  authors?: Author[];
+  authorIds?: string[];
+  abstract: string;
+  doi: string;
 }
 
-const ResearchWork = ({ researchItems, questions, answers }: ActivityProps) => {
+interface Author {
+  name: string;
+  id: string;
+}
+
+interface ResearchWorkProps {
+  userId: string;
+}
+
+const ResearchWork: React.FC<ResearchWorkProps> = ({ userId }) => {
+  const [researchItems, setResearchItems] = useState<ResearchItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchResearchWorks = async () => {
+      setIsLoading(true);
+      try {
+        const q = query(
+          collection(FIREBASE_DB, "work"),
+          where("authorIds", "array-contains", userId)
+        );
+        const querySnapshot = await getDocs(q);
+
+        const researchData = querySnapshot.docs.map((doc) => {
+          const data = doc.data();
+
+          return {
+            ...data,
+            date: data.date?.seconds
+              ? new Date(data.date.seconds * 1000).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "Unknown Date",
+          } as ResearchItem;
+        });
+
+        setResearchItems(researchData);
+      } catch (error) {
+        console.error("Error fetching research works:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchResearchWorks();
+  }, [userId]);
+
   return (
     <Card className="bg-[#252525] border-0">
       <CardHeader>
-        <h3 className="font-semibold text-xl">Research Works</h3>
+        <h3 className="font-semibold text-xl">Works</h3>
       </CardHeader>
-      <CardDescription className="border-b border-gray-200 pb-5 mb-10">
-        <p className="ml-6">
-          {researchItems.length} Research Items, {questions} Questions,{" "}
-          {answers} Answers
-        </p>
-      </CardDescription>
       <CardContent>
-        <ul>
-          {researchItems.map((item, index) => (
-            <div>
-              <div key={index} className="mb-5">
+        {isLoading ? (
+          <div className="flex justify-center p-5">
+            <div className="animate-spin border-4 border-gray-300 border-t-transparent rounded-full w-10 h-10"></div>
+          </div>
+        ) : researchItems.length === 0 ? (
+          <p className="text-center text-gray-400">No items found.</p>
+        ) : (
+          <ul>
+            {researchItems.map((item, index) => (
+              <div
+                key={index}
+                className="mb-8 p-5 border border-gray-700 rounded-lg bg-[#1e1e1e]"
+              >
                 <p className="text-green-500 text-sm">Recently Added</p>
-                <h2 className="text-lg font-bold py-4">{item.title}</h2>
-                <div className="flex flex-row gap-5">
-                  <span className=" bg-green-300 text-green-950 font-semibold px-5">
+                <h2 className="text-xl font-bold py-2">{item.title}</h2>
+
+                <div className="flex flex-wrap gap-3 mt-2">
+                  <span className="bg-green-300 text-green-950 font-semibold px-3 py-1 rounded">
                     New
                   </span>
-                  <span className="bg-cyan-300 text-green-950 font-semibold px-5">
+                  <span className="bg-cyan-300 text-green-950 font-semibold px-3 py-1 rounded">
                     {item.type}
                   </span>
-                  <span>{item.date}</span>
-                  <span>IGARSS 2024 - 2024 IEEE International Geoscience</span>
+                  <span className="text-gray-400">{item.date}</span>
+                  <span className="text-gray-300 italic">Play Store</span>
                 </div>
 
-                <div className="flex flex-row mt-5 gap-5">
-                  {item.authors?.map((item, index) => (
-                    <span
-                      key={index}
-                      className="flex flex-row items-center gap-2"
+                <p className="text-gray-300 mt-4 text-sm">{item.abstract}</p>
+
+                <div className="mt-4">
+                  <p className="text-blue-400 text-sm">
+                    <span className="font-semibold text-white">DOI: </span>
+                    <a
+                      href={`https://doi.org/${item.doi}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
                     >
-                      <Avatar className="w-5 h-5">
+                      {item.doi}
+                    </a>
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap mt-4 gap-3">
+                  {item.authors?.map((author, index) => (
+                    <span key={index} className="flex items-center gap-2">
+                      <Avatar className="w-6 h-6">
                         <AvatarImage />
-                        <AvatarFallback>{item.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="bg-white text-[#252525] font-bold">
+                          {author?.name?.charAt(0)}
+                        </AvatarFallback>
                       </Avatar>
-                      <p>{item}</p>
+                      <p className="text-gray-300 text-sm">{author?.name}</p>
                     </span>
                   ))}
                 </div>
+
+                <div className="flex justify-between items-center mt-5 text-sm">
+                  <span className="border border-cyan-300 rounded-full px-3 py-1 cursor-pointer text-white hover:bg-cyan-300 hover:text-[#252525] transition">
+                    Request Full Text
+                  </span>
+                  <span className="text-gray-400">Like · Save · Recommend</span>
+                </div>
               </div>
-              <div className="flex flex-row justify-between">
-                <span className="border border-cyan-300 rounded-full px-2">
-                  Request full text
-                </span>
-                <span>Like · Save · Reccomend</span>
-              </div>
-              <div className="my-10 shadow-md border-b border-gray-200" />
-            </div>
-          ))}
-        </ul>
+            ))}
+          </ul>
+        )}
       </CardContent>
-      <CardFooter className="items-center">
-        <p>View All Research</p>
+      <CardFooter className="text-center">
+        {researchItems.length > 0 && (
+          <p
+            onClick={() => {
+              router.push(`/dashboard/repo`);
+            }}
+            className="cursor-pointer text-blue-400 hover:underline"
+          >
+            View All Research
+          </p>
+        )}
       </CardFooter>
     </Card>
   );

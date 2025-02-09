@@ -1,10 +1,15 @@
-import Layout from "@/components/Layout";
+"use client";
+
 import React from "react";
 
-export default function Home() {
+const DefaultChatPage = () => {
   return (
-    <Layout>
-      <div className="heading font-bold text-2xl">Sandip</div>
-    </Layout>
+    <div className="h-full flex justify-center items-center">
+      <p className="text-gray-500 text-xl">
+        Select a conversation to start chatting
+      </p>
+    </div>
   );
-}
+};
+
+export default DefaultChatPage;

@@ -19,9 +19,7 @@ const workTypes = [
   "White Paper",
   "Patent",
   "Book",
-  "Code",
-  "Chapter",
-  "Cover Page",
+  "Book Chapter",
   "Journal",
   "Magazine",
   "Thesis",
@@ -33,6 +31,10 @@ const workTypes = [
   "Software Project",
   "Hardware Project",
   "App",
+  "Website",
+  "Dataset",
+  "Preprint",
+  "Technical Documentation",
 ];
 
 interface Props {
@@ -56,7 +58,14 @@ const AddWork: React.FC<Props> = ({ onClick }) => {
       description: "",
       authors: [],
       date: new Date(),
+      publishedIn: "",
+      publisher: "",
+      location: "",
+      edition: "",
       doi: "",
+      reads: 0,
+      citations: 0,
+      futureScope: "",
     },
   });
 
@@ -76,15 +85,22 @@ const AddWork: React.FC<Props> = ({ onClick }) => {
   async function onSubmit(data: any) {
     setIsLoading(true);
     try {
+      const selectedAuthors = data.authors
+        .map((authorId: string) => {
+          const user = users.find((u) => u.id === authorId);
+          return user ? { id: user.id, name: user.name } : null;
+        })
+        .filter(Boolean);
+
       const workData = {
         ...data,
+        authors: selectedAuthors,
         createdAt: new Date(),
         createdBy: user?.uid,
       };
 
-      await setDoc(doc(FIREBASE_DB, "works", crypto.randomUUID()), workData);
-
-      alert("Work added successfully!");
+      await setDoc(doc(FIREBASE_DB, "work", crypto.randomUUID()), workData);
+      form.reset();
       onClick();
     } catch (error) {
       console.error("Error adding work:", error);
@@ -110,6 +126,7 @@ const AddWork: React.FC<Props> = ({ onClick }) => {
             name="type"
             placeholder="Select work type"
             options={workTypes}
+            allowNewOptions={false}
           />
         </div>
 
@@ -132,7 +149,30 @@ const AddWork: React.FC<Props> = ({ onClick }) => {
             placeholder="Enter a brief description"
           />
         </div>
-
+        <CustomFormField
+          control={form.control}
+          fieldType={FormFieldType.INPUT}
+          name="publishedIn"
+          placeholder="Where was this work published? (e.g., IEEE, ArXiv, GitHub)"
+        />
+        <CustomFormField
+          control={form.control}
+          fieldType={FormFieldType.INPUT}
+          name="publisher"
+          placeholder="Publisher or Institution"
+        />
+        <CustomFormField
+          control={form.control}
+          fieldType={FormFieldType.INPUT}
+          name="location"
+          placeholder="Location of publication (if applicable)"
+        />
+        <CustomFormField
+          control={form.control}
+          fieldType={FormFieldType.INPUT}
+          name="edition"
+          placeholder="Edition (if applicable)"
+        />
         <div>
           <h3 className="mb-2 font-semibold">Authors</h3>
           <CustomFormField
@@ -154,7 +194,6 @@ const AddWork: React.FC<Props> = ({ onClick }) => {
             setDate={(date) => form.setValue("date", date as Date)}
           />
         </div>
-
         <div>
           <h3 className="mb-2 font-semibold">DOI / Link</h3>
           <CustomFormField
@@ -173,6 +212,16 @@ const AddWork: React.FC<Props> = ({ onClick }) => {
               This feature is not yet supported
             </p>
           </div>
+        </div>
+
+        <div>
+          <h3 className="mb-2 font-semibold">Description / Abstract</h3>
+          <CustomFormField
+            control={form.control}
+            fieldType={FormFieldType.TEXTAREA}
+            name="futureScope"
+            placeholder="what's next? what is the future scope of this work?"
+          />
         </div>
 
         <div className="flex-wrap flex gap-5">

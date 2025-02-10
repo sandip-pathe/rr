@@ -23,6 +23,7 @@ import {
 } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { formatDate } from "./helper";
+import { usePageHeading } from "@/app/auth/PageHeadingContext";
 
 interface Question {
   id: string;
@@ -44,6 +45,24 @@ const AMA = () => {
   const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const { setHeading, setIsVisible } = usePageHeading();
+
+  useEffect(() => {
+    if (!headingRef.current) return;
+    setHeading(headingRef.current.innerText);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(headingRef.current);
+    return () => {
+      if (headingRef.current) observer.unobserve(headingRef.current);
+    };
+  }, [setHeading, setIsVisible]);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -130,7 +149,7 @@ const AMA = () => {
     <Layout>
       <div className="flex flex-row">
         <div className="w-2/3 ml-10 mt-5">
-          <h1 className="text-2xl font-semibold text-gray-300">
+          <h1 ref={headingRef} className="text-2xl font-semibold text-gray-300">
             Ask Me Anything
           </h1>
           <button

@@ -1,3 +1,4 @@
+import { PageHeadingProvider } from "@/app/auth/PageHeadingContext";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 

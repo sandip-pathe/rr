@@ -2,7 +2,7 @@
 
 import Layout from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/Modal";
 import EditMainUserComponent from "./EditMainUserComponent";
@@ -13,6 +13,7 @@ import AddResearch from "./AddResearch";
 import { getDoc, doc } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { useAuth } from "@/app/auth/AuthContext";
+import { usePageHeading } from "@/app/auth/PageHeadingContext";
 
 interface UserProfile {
   name: string;
@@ -37,6 +38,24 @@ const UserProfileComponent = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const { setHeading, setIsVisible } = usePageHeading();
+
+  useEffect(() => {
+    if (!headingRef.current) return;
+    setHeading(headingRef.current.innerText);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(headingRef.current);
+    return () => {
+      if (headingRef.current) observer.unobserve(headingRef.current);
+    };
+  }, [setHeading, setIsVisible]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -84,7 +103,10 @@ const UserProfileComponent = () => {
           </div>
           <div className="">
             <div className="flex flex-wrap gap-5 items-center">
-              <h1 className="text-xl font-bold">{userProfile.name}</h1>
+              <h1 ref={headingRef} className="text-xl font-bold">
+                {userProfile.name}
+              </h1>
+
               <Button
                 onClick={() => setIsModalOpen(true)}
                 className="h-fit w-fit px-2 py-0 bg-transparent rounded-none hover:bg-slate-700 text-white underline-offset-1 underline"

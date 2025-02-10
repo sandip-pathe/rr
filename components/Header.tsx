@@ -1,3 +1,5 @@
+"use client";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "./ui/input";
 import Image from "next/image";
@@ -11,10 +13,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/app/auth/AuthContext";
 import { useRouter } from "next/navigation";
+import { usePageHeading } from "@/app/auth/PageHeadingContext";
+import { useState } from "react";
 
 const Header = () => {
   const { user, logout, loading, name, role } = useAuth();
   const router = useRouter();
+  const { heading, isVisible } = usePageHeading();
 
   const handleLogout = async () => {
     await logout();
@@ -32,6 +37,15 @@ const Header = () => {
           className="h-10 w-fit"
         />
       </div>
+
+      <div className="top-3 fixed left-1/4">
+        {!isVisible && heading && (
+          <div className="absolute w-40 transform -translate-x-1/2 text-lg font-semibold line-clamp-1 text-gray-300">
+            {heading}
+          </div>
+        )}
+      </div>
+
       <Input
         className="w-96 h-8 m-2 bg-[#1f1f1e] text-white"
         placeholder="Search (Alt+Shift+E)"

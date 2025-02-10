@@ -1,16 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNotifications, markNotificationAsRead } from "./UseNotifications";
 import { useAuth } from "@/app/auth/AuthContext";
 import { LuMessagesSquare } from "react-icons/lu";
+import { usePageHeading } from "@/app/auth/PageHeadingContext";
 
 const NotificationPanel = () => {
   const { user } = useAuth();
   const notifications = useNotifications(user?.uid!);
   const [selectedNotification, setSelectedNotification] = useState<any>(null);
   const router = useRouter();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const { setHeading, setIsVisible } = usePageHeading();
+
+  useEffect(() => {
+    if (!headingRef.current) return;
+    setHeading(headingRef.current.innerText);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(headingRef.current);
+    return () => {
+      if (headingRef.current) observer.unobserve(headingRef.current);
+    };
+  }, [setHeading, setIsVisible]);
 
   const handleNotificationClick = async (notification: any) => {
     setSelectedNotification(notification);
@@ -25,8 +44,10 @@ const NotificationPanel = () => {
 
   return (
     <div className="flex h-screen">
-      {/* Left Panel */}
       <div className="w-1/3 p-2 bg-[#1a1b1b]">
+        <h1 ref={headingRef} className="text-2xl font-semibold text-gray-300">
+          Activities
+        </h1>
         <ul>
           {notifications.map((notification) => (
             <li

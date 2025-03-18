@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { useRouter } from "next/navigation";
 import Layout from "../../components/Layout";
-import NotificationPanel from "./activity/NotificationPanel";
+import DefaultPage from "./activity/page";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -16,10 +16,16 @@ const Dashboard = () => {
     }
   }, [user, loading, router]);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) {
+    return (
+      <Layout>
+        <p>Loading...</p>
+      </Layout>
+    );
+  }
   return (
     <Layout>
-      <NotificationPanel />
+      <DefaultPage />
     </Layout>
   );
 };

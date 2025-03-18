@@ -11,7 +11,7 @@ import { FaGoogleScholar } from "react-icons/fa6";
 
 const links = [
   {
-    path: "/dashboard",
+    path: "/dashboard/activity",
     icon: (isActive: boolean) => (
       <IoMdNotifications
         className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}

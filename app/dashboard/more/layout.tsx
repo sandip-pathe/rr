@@ -1,10 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import Layout from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDate } from "../ama/helper";
+import { usePageHeading } from "@/app/auth/PageHeadingContext";
+import { MdAddComment } from "react-icons/md";
 
 interface Chat {
   id: string;
@@ -35,19 +37,49 @@ const dummyChats: Chat[] = [
 ];
 
 const MsgLayout = ({ children }: { children: React.ReactNode }) => {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const { setHeading, setIsVisible } = usePageHeading();
+
+  useEffect(() => {
+    if (!headingRef.current) return;
+    setHeading(headingRef.current.innerText);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(headingRef.current);
+    return () => {
+      if (headingRef.current) observer.unobserve(headingRef.current);
+    };
+  }, [setHeading, setIsVisible]);
+
   return (
     <Layout>
       <div className="flex h-screen">
-        <div className="w-1/3 p-2 bg-[#1a1b1b]">
-          <h1 className="text-xl font-bold text-white">Chats</h1>
+        <div className="w-1/3 p-2 bg-[#1a1b1b] border-x border-gray-500 overflow-y-auto">
+          <div className="flex flex-row items-center justify-between">
+            <h1
+              ref={headingRef}
+              className="text-2xl font-bold text-gray-300 m-5"
+            >
+              Chats
+            </h1>
+            <MdAddComment className="text-3xl text-gray-300 cursor-pointer" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search chats..."
+            className="w-full self-center p-2 bg-[#252525] rounded-md mb-5"
+          />
           <ul>
             {dummyChats.map((chat) => (
               <li
                 key={chat.id}
                 className={`p-2 mb-2 flex flex-row items-center cursor-pointer rounded-sm shadow-sm ${
-                  chat.lastMessage
-                    ? "bg-[#252525] border border-gray-500"
-                    : "font-bold opacity-70"
+                  chat.lastMessage ? "bg-[#252525]" : "font-bold opacity-70"
                 }`}
               >
                 <Link
@@ -76,7 +108,7 @@ const MsgLayout = ({ children }: { children: React.ReactNode }) => {
             ))}
           </ul>
         </div>
-        <div className="w-2/3 overflow-scroll overflow-y-auto">{children}</div>
+        <div className="w-2/3 overflow-hidden">{children}</div>
       </div>
     </Layout>
   );

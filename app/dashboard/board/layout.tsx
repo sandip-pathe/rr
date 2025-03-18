@@ -2,7 +2,6 @@
 
 import { useSearchParams } from "next/navigation";
 import React from "react";
-import Modal from "@/components/Modal";
 
 const BoardLayout = ({
   children,
@@ -17,7 +16,7 @@ const BoardLayout = ({
   return (
     <div>
       {children}
-      {modalId && modal} {/* Render the modal content when modalId exists */}
+      {modalId && modal}
     </div>
   );
 };

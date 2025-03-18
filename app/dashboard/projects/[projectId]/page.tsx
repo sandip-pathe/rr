@@ -19,6 +19,7 @@ import { Form } from "@/components/ui/form";
 import { FormFieldType } from "@/enum/FormFieldTypes";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import DatePickerShadCN from "@/components/DatePicker";
+import Layout from "@/components/Layout";
 
 interface User {
   id: string;
@@ -112,77 +113,79 @@ const ProjectForm = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-dark-400 rounded-lg">
-      <h1 className="text-xl font-bold mb-4">
-        {isEditMode ? "Edit Project" : "Add New Project"}
-      </h1>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <CustomFormField
-            control={form.control}
-            fieldType={FormFieldType.INPUT}
-            name="title"
-            label="Project Title"
-            placeholder="Enter project title"
-          />
-          <CustomFormField
-            control={form.control}
-            fieldType={FormFieldType.TEXTAREA}
-            name="description"
-            label="Description"
-            placeholder="Enter project details"
-          />
-          <div className="flex flex-col">
-            <label htmlFor="dueDate" className="text-sm font-semibold mb-2">
-              Due Date
-            </label>
-            <DatePickerShadCN
-              date={form.watch("dueDate")}
-              setDate={(date: any) => form.setValue("dueDate", date)}
+    <Layout>
+      <div className="max-w-2xl mx-auto p-6 bg-dark-400 rounded-lg">
+        <h1 className="text-xl font-bold mb-4">
+          {isEditMode ? "Edit Project" : "Add New Project"}
+        </h1>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.INPUT}
+              name="title"
+              label="Project Title"
+              placeholder="Enter project title"
             />
-          </div>
-          <CustomFormField
-            control={form.control}
-            fieldType={FormFieldType.SEARCHABLE_SELECT}
-            allowNewOptions={false}
-            name="category"
-            label="Category"
-            placeholder="Select category"
-            options={["Research", "Major", "Minor", "Other"]}
-          />
-          <CustomFormField
-            control={form.control}
-            fieldType={FormFieldType.M_SEARCHABLE_SELECT}
-            allowNewOptions={false}
-            name="admins"
-            label="Add admins to the project"
-            placeholder="Select multiple admins"
-            options={users}
-            optionKey="id"
-            optionLabel="name"
-          />
-          <CustomFormField
-            control={form.control}
-            fieldType={FormFieldType.M_SEARCHABLE_SELECT}
-            allowNewOptions={false}
-            name="members"
-            label="Add members to the project"
-            placeholder="Select multiple members"
-            options={users}
-            optionKey="id"
-            optionLabel="name"
-          />
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.TEXTAREA}
+              name="description"
+              label="Description"
+              placeholder="Enter project details"
+            />
+            <div className="flex flex-col">
+              <label htmlFor="dueDate" className="text-sm font-semibold mb-2">
+                Due Date
+              </label>
+              <DatePickerShadCN
+                date={form.watch("dueDate")}
+                setDate={(date: any) => form.setValue("dueDate", date)}
+              />
+            </div>
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.SEARCHABLE_SELECT}
+              allowNewOptions={false}
+              name="category"
+              label="Category"
+              placeholder="Select category"
+              options={["Research", "Major", "Minor", "Other"]}
+            />
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.M_SEARCHABLE_SELECT}
+              allowNewOptions={false}
+              name="admins"
+              label="Add admins to the project"
+              placeholder="Select multiple admins"
+              options={users}
+              optionKey="id"
+              optionLabel="name"
+            />
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.M_SEARCHABLE_SELECT}
+              allowNewOptions={false}
+              name="members"
+              label="Add members to the project"
+              placeholder="Select multiple members"
+              options={users}
+              optionKey="id"
+              optionLabel="name"
+            />
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading
-              ? "Saving..."
-              : isEditMode
-              ? "Update Project"
-              : "Create Project"}
-          </Button>
-        </form>
-      </Form>
-    </div>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading
+                ? "Saving..."
+                : isEditMode
+                ? "Update Project"
+                : "Create Project"}
+            </Button>
+          </form>
+        </Form>
+      </div>
+    </Layout>
   );
 };
 

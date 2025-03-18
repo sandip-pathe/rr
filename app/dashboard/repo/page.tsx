@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ResearchWork from "./ResearchWork";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,9 @@ const SearchRepo = () => {
   const [sortCriteria, setSortCriteria] = useState<string>("relevance");
   const [filterType, setFilterType] = useState<string>("All");
   const [researchPapers, setResearchPapers] = useState<ResearchItem[]>([]);
+  const [heading, setHeading] = useState<string>("");
+  const [isVisible, setIsVisible] = useState<boolean>(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     const fetchWorks = async () => {
@@ -97,9 +100,31 @@ const SearchRepo = () => {
     return (titleMatch || authorMatch || abstractMatch) && typeMatch;
   });
 
+  useEffect(() => {
+    if (!headingRef.current) return;
+    setHeading(headingRef.current.innerText);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(headingRef.current);
+    return () => {
+      if (headingRef.current) observer.unobserve(headingRef.current);
+    };
+  }, [setHeading, setIsVisible]);
+
   return (
     <Layout>
-      <div className="">
+      <>
+        <h1
+          ref={headingRef}
+          className="text-2xl font-semibold text-gray-300 ml-10 mt-5"
+        >
+          Research Repository
+        </h1>
         <div className="flex flex-row">
           <div className="w-1/6"></div>
           <div className="mt-5 w-1/2 ">
@@ -171,7 +196,7 @@ const SearchRepo = () => {
             />
           </div>
         </div>
-      </div>
+      </>
     </Layout>
   );
 };

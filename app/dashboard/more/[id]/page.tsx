@@ -1,5 +1,3 @@
-//TODO: so the scroll for the separate page is not working!
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -40,16 +38,12 @@ export const sendMessage = async (
     senderId,
     content,
     timestamp: serverTimestamp(),
-    // Initially, the message hasn't been read by anyone.
-    readBy: [senderId], // sender automatically "read" their message
-    // Optionally, you can add deliveredAt: null and seenAt: null fields.
+    readBy: [senderId],
   };
 
-  // Reference to the messages subcollection
   const messagesRef = collection(db, "chats", chatId, "messages");
   const docRef = await addDoc(messagesRef, messageData);
 
-  // Update the chat document with a preview of the last message and a timestamp
   const chatRef = doc(db, "chats", chatId);
   await updateDoc(chatRef, {
     lastMessage: content,
@@ -75,14 +69,7 @@ export const markMessageAsSeen = async (
   chatId: string,
   messageId: string,
   userId: string
-) => {
-  const messageRef = doc(db, "chats", chatId, "messages", messageId);
-  await updateDoc(messageRef, {
-    // Add the user to the readBy array; if already there, nothing changes.
-    readBy: arrayUnion(userId),
-    seenAt: serverTimestamp(), // Optionally store a seen timestamp
-  });
-};
+) => {};
 
 export const markMessageAsDelivered = async (
   chatId: string,
@@ -151,7 +138,7 @@ const ChatDetailPage = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="h-14 flex flex-row items-center p-4 bg-[#1a1b1b]">
+      <header className="h-14 flex flex-row items-center p-4 bg-[#1a1b1b] sticky top-0 z-10">
         <Avatar className="h-10 w-10 m-2">
           <AvatarImage src="https://github.com/shadcn.png" />
           <AvatarFallback>CN</AvatarFallback>
@@ -162,8 +149,7 @@ const ChatDetailPage = () => {
         </div>
       </header>
 
-      {/* Chat Messages Container */}
-      <div className="flex-1 overflow-y-auto p-10">
+      <div className="flex-1 overflow-y-auto p-4">
         {messages?.map((msg) => (
           <div
             key={msg.id}
@@ -190,18 +176,18 @@ const ChatDetailPage = () => {
 
       <form
         onSubmit={handleSend}
-        className="h-14 flex flex-row items-center p-4 bg-[#1a1b1b]"
+        className="h-14 flex items-center p-4 bg-[#1a1b1b] sticky bottom-0"
       >
         <input
           type="text"
           placeholder="Type a message..."
-          className="flex-1 border rounded-l-lg p-2"
+          className="flex-1 border border-gray-600 bg-[#252525] rounded-l-lg p-2 text-white focus:outline-none"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
         />
         <button
           type="submit"
-          className="bg-blue-500 text-white p-2 rounded-r-lg"
+          className="bg-blue-500 text-white p-2 rounded-r-lg hover:bg-blue-600 transition"
         >
           Send
         </button>

@@ -106,7 +106,6 @@ const UserProfileComponent = () => {
               <h1 ref={headingRef} className="text-xl font-bold">
                 {userProfile.name}
               </h1>
-
               <Button
                 onClick={() => setIsModalOpen(true)}
                 className="h-fit w-fit px-2 py-0 bg-transparent rounded-none hover:bg-slate-700 text-white underline-offset-1 underline"

@@ -13,12 +13,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { Avatar } from "@/components/ui/avatar";
+import Modal from "@/components/Modal";
+import ProjectForm from "./newForm";
 
 interface Project {
   id: string;
   title: string;
   status: string;
   dueDate: string;
+  onClick?: () => void;
 }
 
 const getInitials = (name: string) => {
@@ -52,14 +55,14 @@ const SkeletonCard = () => (
   <Card className="w-72 h-36 bg-gray-400 animate-pulse rounded-lg"></Card>
 );
 
-const ProjectCard = ({ id, title, status, dueDate }: Project) => {
+const ProjectCard = ({ id, title, onClick, dueDate }: Project) => {
   const router = useRouter();
   const initials = getInitials(title);
   const gradient = getGradientFromInitials(initials);
 
   return (
     <Card
-      onClick={() => router.push(`/dashboard/projects/${id}`)}
+      onClick={onClick}
       className="w-72 h-36 cursor-pointer transition-transform transform hover:scale-105 bg-cover border-none shadow-md relative overflow-hidden"
       style={{ background: gradient }}
     >
@@ -94,7 +97,8 @@ export default function Projects() {
   const [ongoingProjects, setOngoingProjects] = useState<Project[]>([]);
   const [completedProjects, setCompletedProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { replace } = useRouter();
 
   useEffect(() => {
     const projectsRef = collection(FIREBASE_DB, "projects");
@@ -119,6 +123,17 @@ export default function Projects() {
     return () => unsubscribe();
   }, []);
 
+  const handleTaskAction = async (projectId?: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (projectId) {
+      params.set("projectId", projectId);
+    } else {
+      params.set("projectId", "new");
+    }
+    replace(`/dashboard/projects?${params.toString()}`, { scroll: false });
+    setIsModalOpen(true);
+  };
+
   return (
     <Layout>
       <div className="p-8">
@@ -134,7 +149,11 @@ export default function Projects() {
                 ))
               ) : ongoingProjects.length > 0 ? (
                 ongoingProjects.map((project) => (
-                  <ProjectCard key={project.id} {...project} />
+                  <ProjectCard
+                    key={project.id}
+                    {...project}
+                    onClick={() => handleTaskAction(project.id)}
+                  />
                 ))
               ) : (
                 <p className="text-gray-400">No ongoing projects</p>
@@ -165,12 +184,17 @@ export default function Projects() {
 
       <div className="fixed right-12 bottom-12 z-10">
         <button
-          onClick={() => router.push("/dashboard/projects/new")}
+          onClick={() => handleTaskAction()}
           className="bg-[#5720B7] text-white p-6 rounded-full shadow-gray-400 shadow-md hover:scale-110 transition-transform"
         >
           <FaPlus className="text-2xl" />
         </button>
       </div>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <div className="flex flex-col h-full flex-1 overflow-y-auto p-4">
+          <ProjectForm onClick={() => setIsModalOpen(false)} />
+        </div>
+      </Modal>
     </Layout>
   );
 }

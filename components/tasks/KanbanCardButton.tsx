@@ -14,13 +14,13 @@ const KanbanCardButton = ({
 }: React.PropsWithChildren<Props>) => {
   return (
     <Button
-      className=" hover:bg-gray-700 text-lg rounded-sm bg-transparent border border-white"
+      className="hover:bg-gray-700 text-lg rounded-sm bg-transparent"
       onClick={onClick}
     >
       {children ?? (
         <span className="flex flex-row gap-2 items-center">
           <PlusCircleIcon className="text-white" />
-          <p className="text-md text-white">Add New card</p>
+          <p className="text-md text-white">Add New</p>
         </span>
       )}
     </Button>

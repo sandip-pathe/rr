@@ -20,19 +20,18 @@ import { FormFieldType } from "@/enum/FormFieldTypes";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import DatePickerShadCN from "@/components/DatePicker";
 import Layout from "@/components/Layout";
+import { IoClose } from "react-icons/io5";
+import Spiner from "@/components/Spiner";
 
 interface User {
   id: string;
   name: string;
 }
 
-const ProjectForm = () => {
-  const router = useRouter();
+const ProjectForm = ({ onClick }: any) => {
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const segments = pathname.split("/");
-  const projectId = segments[segments.length - 1];
-  const isEditMode = projectId !== "new";
+  const projectId = searchParams.get("projectId");
+  const isNew = projectId == "new";
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
 
@@ -44,25 +43,35 @@ const ProjectForm = () => {
       status: "Ongoing",
       members: [],
       admins: [],
+      memberDetails: {},
+      adminDetails: {},
       dueDate: undefined,
+      createTasksWithAI: true,
     },
   });
 
   useEffect(() => {
-    if (isEditMode) {
-      const fetchProject = async () => {
-        setLoading(true);
-        console.log("projectId", projectId);
-        const docRef = doc(FIREBASE_DB, "projects", projectId!);
+    console.log("projectId", projectId);
+    if (!projectId || projectId === "new") return;
+
+    const fetchProject = async () => {
+      setLoading(true);
+      try {
+        const docRef = doc(FIREBASE_DB, "projects", projectId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           form.reset(docSnap.data());
+        } else {
+          console.warn("Project not found");
         }
-        setLoading(false);
-      };
-      fetchProject();
-    }
-  }, [isEditMode, projectId, form]);
+      } catch (error) {
+        console.error("Error fetching project:", error);
+      }
+      setLoading(false);
+    };
+
+    fetchProject();
+  }, [projectId, form]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -81,15 +90,38 @@ const ProjectForm = () => {
     setLoading(true);
     try {
       let projectRef;
-      if (isEditMode) {
-        projectRef = doc(FIREBASE_DB, "projects", projectId!);
-        await updateDoc(projectRef, data);
+      const newProjectId = !isNew
+        ? projectId
+        : `${data.title.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}`;
+
+      projectRef = doc(FIREBASE_DB, "projects", newProjectId!);
+
+      // Convert users array to ID → Name mappings
+      const memberDetails = data.members.reduce((acc: any, userId: string) => {
+        const user = users.find((u) => u.id === userId);
+        if (user) acc[userId] = user.name;
+        return acc;
+      }, {});
+
+      const adminDetails = data.admins.reduce((acc: any, userId: string) => {
+        const user = users.find((u) => u.id === userId);
+        if (user) acc[userId] = user.name;
+        return acc;
+      }, {});
+
+      const projectData = {
+        ...data,
+        members: Object.keys(memberDetails),
+        admins: Object.keys(adminDetails),
+        memberDetails,
+        adminDetails,
+        createdAt: !isNew ? undefined : serverTimestamp(),
+      };
+
+      if (!isNew) {
+        await updateDoc(projectRef, projectData);
       } else {
-        const projectId = `${data.title
-          .replace(/\s+/g, "-")
-          .toLowerCase()}-${Date.now()}`;
-        projectRef = doc(FIREBASE_DB, "projects", projectId);
-        await setDoc(projectRef, { ...data, createdAt: serverTimestamp() });
+        await setDoc(projectRef, projectData);
       }
 
       const updateUserProjects = async (userIds: string[]) => {
@@ -102,22 +134,59 @@ const ProjectForm = () => {
         await Promise.all(batchUpdates);
       };
 
-      await updateUserProjects(data.members);
-      await updateUserProjects(data.admins);
+      await updateUserProjects(Object.keys(memberDetails));
+      await updateUserProjects(Object.keys(adminDetails));
+
+      if (data.createTasksWithAI) {
+        console.log("✅ Creating tasks using AI for the project...");
+        await generateAITasks(projectRef.id, data.title);
+      }
     } catch (error) {
       console.error("Error saving project:", error);
     } finally {
       setLoading(false);
-      router.push("/dashboard/projects");
+      closeModal();
     }
   };
 
+  const generateAITasks = async (projectId: string, title: string) => {
+    console.log(
+      `Generating AI tasks for Project ID: ${projectId}, Title: ${title}`
+    );
+  };
+
+  const closeModal = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete("projectId");
+    const newUrl = `${window.location.pathname}${
+      params.toString() ? "?" + params.toString() : ""
+    }`;
+    window.history.replaceState(null, "", newUrl);
+    onClick();
+  };
+
   return (
-    <Layout>
-      <div className="max-w-2xl mx-auto p-6 bg-dark-400 rounded-lg">
-        <h1 className="text-xl font-bold mb-4">
-          {isEditMode ? "Edit Project" : "Add New Project"}
-        </h1>
+    <>
+      <div className="space-y-6 flex-1 bg-black p-8 pb-0 scroll-auto">
+        <section className="mb-10 space-y-4">
+          <span className="relative flex justify-end">
+            <button
+              type="button"
+              className="text-white text-xl font-semibold"
+              onClick={closeModal}
+            >
+              <IoClose />
+            </button>
+          </span>
+          {loading ? (
+            <Spiner />
+          ) : (
+            <h1 className="text-xl font-bold mb-4">
+              {!isNew ? "Edit Project" : "Add New Project"}
+            </h1>
+          )}
+        </section>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <CustomFormField
@@ -174,18 +243,31 @@ const ProjectForm = () => {
               optionKey="id"
               optionLabel="name"
             />
-
+            {isNew && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="createTasksWithAI"
+                  {...form.register("createTasksWithAI")}
+                  defaultChecked={true}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="createTasksWithAI" className="text-sm">
+                  Create tasks for the project using AI?
+                </label>
+              </div>
+            )}
             <Button type="submit" disabled={loading} className="w-full">
               {loading
                 ? "Saving..."
-                : isEditMode
+                : !isNew
                 ? "Update Project"
                 : "Create Project"}
             </Button>
           </form>
         </Form>
       </div>
-    </Layout>
+    </>
   );
 };
 

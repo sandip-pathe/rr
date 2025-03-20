@@ -12,6 +12,7 @@ import {
   collection,
   getDocs,
   arrayUnion,
+  addDoc,
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import CustomFormField from "@/components/CustomFormField";
@@ -23,6 +24,7 @@ import { IoClose } from "react-icons/io5";
 import Spiner from "@/components/Spiner";
 import { generateAITasks } from "./helper";
 import { FaDeleteLeft } from "react-icons/fa6";
+import { AnyNaptrRecord } from "node:dns";
 
 interface User {
   id: string;
@@ -59,7 +61,7 @@ const ProjectForm = ({ onClick }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [taskCount, setTaskCount] = useState("3");
   const [tasks, setTasks] = useState<any[]>([]);
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [newProjectId, setNewProjectId] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: {
@@ -126,6 +128,7 @@ const ProjectForm = ({ onClick }: any) => {
     try {
       let projectRef;
       const newProjectId = !isNew ? projectId : generateProjectId(data.title);
+      setNewProjectId(newProjectId);
       projectRef = doc(FIREBASE_DB, "projects", newProjectId!);
       const memberDetails = data.members.reduce((acc: any, userId: string) => {
         const user = users.find((u) => u.id === userId);
@@ -161,6 +164,9 @@ const ProjectForm = ({ onClick }: any) => {
       };
       await updateUserProjects(Object.keys(memberDetails));
       await updateUserProjects(Object.keys(adminDetails));
+      console.log("✅ Project saved successfully");
+      await handleSubmitTasks(newProjectId as string);
+      console.log("✅ Tasks saved successfully");
       closeModal();
     } catch (error) {
       console.error("Error saving project:", error);
@@ -179,8 +185,9 @@ const ProjectForm = ({ onClick }: any) => {
     try {
       const title = form.getValues("title");
       console.log(`🚀 Generating ${taskCountNum} AI tasks...`);
-      await generateAITasks(projectId!, title, taskCountNum);
-      console.log("✅ AI task generation completed!");
+      const tasks = await generateAITasks(projectId!, title, taskCountNum);
+      console.log("✅ AI task generation completed!", tasks);
+      setTasks(tasks);
     } catch (error) {
       console.error("❌ Failed to generate AI tasks:", error);
     } finally {
@@ -201,17 +208,55 @@ const ProjectForm = ({ onClick }: any) => {
   const handleEditTask = (
     id: string,
     field: "title" | "description" | "dueDate",
-    value: string
+    value: string | Date
   ) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
-        task.id === id ? { ...task, [field]: value } : task
+        task.id === id
+          ? { ...task, [field]: field === "dueDate" ? new Date(value) : value }
+          : task
       )
     );
   };
 
   const handleDeleteTask = (id: string) => {
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
+  };
+
+  const handleSubmitTasks = async (projectIdx: string) => {
+    setLoading(true);
+
+    try {
+      const tasksCollectionRef = collection(
+        FIREBASE_DB,
+        "projects",
+        projectIdx,
+        "tasks"
+      );
+
+      const validTasks = tasks.filter(
+        (task) => task.title.trim() || task.description.trim()
+      );
+
+      await Promise.all(
+        validTasks.map(async (task) =>
+          addDoc(tasksCollectionRef, {
+            title: task.title,
+            description: task.description,
+            dueDate: task.dueDate
+              ? task.dueDate.toISOString()
+              : new Date().toISOString(),
+            stageId: "1-unassigned",
+          })
+        )
+      );
+
+      console.log("✅ Tasks successfully uploaded.");
+    } catch (error) {
+      console.error("❌ Error uploading tasks:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -235,7 +280,6 @@ const ProjectForm = ({ onClick }: any) => {
             </h1>
           )}
         </section>
-
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <CustomFormField
@@ -324,7 +368,7 @@ const ProjectForm = ({ onClick }: any) => {
             {tasks.length > 0 && (
               <>
                 <h3 className="font-bold mb-2">Generated Tasks</h3>
-                <table className="w-full border-collapse border border-gray-700">
+                <table className="w-full border-collapse border border-gray-700 rounded-sm">
                   <thead>
                     <tr className="bg-gray-800 text-white">
                       <th className="p-2 border border-gray-700">Title</th>
@@ -337,19 +381,20 @@ const ProjectForm = ({ onClick }: any) => {
                   </thead>
                   <tbody>
                     {tasks.map((task) => (
-                      <tr key={task.id} className="">
+                      <tr key={task.id}>
                         <td className="p-2 border-y border-gray-700">
                           <input
+                            className="bg-transparent w-full p-1 border rounded-md"
                             type="text"
                             value={task.title}
                             onChange={(e) =>
                               handleEditTask(task.id, "title", e.target.value)
                             }
-                            className="bg-transparent w-full p-1 border rounded-md"
                           />
                         </td>
                         <td className="p-2 border-y border-gray-700">
                           <input
+                            className="bg-transparent w-full p-1 border rounded-md"
                             type="text"
                             value={task.description}
                             onChange={(e) =>
@@ -359,11 +404,15 @@ const ProjectForm = ({ onClick }: any) => {
                                 e.target.value
                               )
                             }
-                            className="bg-transparent w-full p-1 border rounded-md"
                           />
                         </td>
                         <td className="p-2 border-y border-gray-700 max-w-28 align-middle">
-                          <DatePickerShadCN date={date} setDate={setDate} />
+                          <DatePickerShadCN
+                            date={task.dueDate}
+                            setDate={(date: any) =>
+                              handleEditTask(task.id, "dueDate", date)
+                            }
+                          />
                         </td>
                         <td className="p-2 border-y border-gray-700 cursor-pointer">
                           <div onClick={() => handleDeleteTask(task.id)}>
@@ -372,6 +421,64 @@ const ProjectForm = ({ onClick }: any) => {
                         </td>
                       </tr>
                     ))}
+                    {/* an empty row */}
+                    <tr>
+                      <td className="p-2 border-y border-gray-700">
+                        <input
+                          className="bg-transparent w-full p-1 border rounded-md"
+                          type="text"
+                          value=""
+                          placeholder="New task title"
+                          onChange={(e) =>
+                            setTasks([
+                              ...tasks,
+                              {
+                                id: crypto.randomUUID(),
+                                title: e.target.value,
+                                description: "",
+                                dueDate: new Date(),
+                              },
+                            ])
+                          }
+                        />
+                      </td>
+                      <td className="p-2 border-y border-gray-700">
+                        <input
+                          className="bg-transparent w-full p-1 border rounded-md"
+                          type="text"
+                          value=""
+                          placeholder="New task description"
+                          onChange={(e) =>
+                            setTasks([
+                              ...tasks,
+                              {
+                                id: crypto.randomUUID(),
+                                title: "",
+                                description: e.target.value,
+                                dueDate: new Date(),
+                              },
+                            ])
+                          }
+                        />
+                      </td>
+                      <td className="p-2 border-y border-gray-700 max-w-28 align-middle">
+                        <DatePickerShadCN
+                          date={new Date()}
+                          setDate={(date: any) =>
+                            setTasks([
+                              ...tasks,
+                              {
+                                id: crypto.randomUUID(),
+                                title: "",
+                                description: "",
+                                dueDate: date,
+                              },
+                            ])
+                          }
+                        />
+                      </td>
+                      <td></td>
+                    </tr>
                   </tbody>
                 </table>
               </>

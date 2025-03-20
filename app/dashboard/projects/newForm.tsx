@@ -1,7 +1,7 @@
 "use client";
 
-import React, { memo, useEffect, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
   doc,
@@ -19,14 +19,36 @@ import { Form } from "@/components/ui/form";
 import { FormFieldType } from "@/enum/FormFieldTypes";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import DatePickerShadCN from "@/components/DatePicker";
-import Layout from "@/components/Layout";
 import { IoClose } from "react-icons/io5";
 import Spiner from "@/components/Spiner";
+import { generateAITasks } from "./helper";
+import { FaDeleteLeft } from "react-icons/fa6";
 
 interface User {
   id: string;
   name: string;
 }
+
+const skills = [
+  "React",
+  "Vue",
+  "Angular",
+  "Node",
+  "Express",
+  "MongoDB",
+  "Firebase",
+  "PostgreSQL",
+  "GraphQL",
+  "REST API",
+  "TypeScript",
+  "JavaScript",
+  "HTML",
+  "CSS",
+  "SASS",
+  "Tailwind CSS",
+  "Bootstrap",
+  "Material UI",
+];
 
 const ProjectForm = ({ onClick }: any) => {
   const searchParams = useSearchParams();
@@ -34,6 +56,10 @@ const ProjectForm = ({ onClick }: any) => {
   const isNew = projectId == "new";
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [taskCount, setTaskCount] = useState("3");
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
   const form = useForm({
     defaultValues: {
@@ -86,29 +112,31 @@ const ProjectForm = ({ onClick }: any) => {
     fetchUsers();
   }, []);
 
+  const generateProjectId = (title: string) => {
+    const sanitizedTitle = title.replace(/\s+/g, "").toLowerCase().slice(0, 15);
+    const dateSuffix = new Date()
+      .toISOString()
+      .replace(/[-:T.]/g, "")
+      .slice(-5);
+    return `${sanitizedTitle.padEnd(15, "-")}${dateSuffix}`;
+  };
+
   const onSubmit = async (data: any) => {
     setLoading(true);
     try {
       let projectRef;
-      const newProjectId = !isNew
-        ? projectId
-        : `${data.title.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}`;
-
+      const newProjectId = !isNew ? projectId : generateProjectId(data.title);
       projectRef = doc(FIREBASE_DB, "projects", newProjectId!);
-
-      // Convert users array to ID → Name mappings
       const memberDetails = data.members.reduce((acc: any, userId: string) => {
         const user = users.find((u) => u.id === userId);
         if (user) acc[userId] = user.name;
         return acc;
       }, {});
-
       const adminDetails = data.admins.reduce((acc: any, userId: string) => {
         const user = users.find((u) => u.id === userId);
         if (user) acc[userId] = user.name;
         return acc;
       }, {});
-
       const projectData = {
         ...data,
         members: Object.keys(memberDetails),
@@ -117,13 +145,11 @@ const ProjectForm = ({ onClick }: any) => {
         adminDetails,
         createdAt: !isNew ? undefined : serverTimestamp(),
       };
-
       if (!isNew) {
         await updateDoc(projectRef, projectData);
       } else {
         await setDoc(projectRef, projectData);
       }
-
       const updateUserProjects = async (userIds: string[]) => {
         const batchUpdates = userIds.map(async (userId) => {
           const userRef = doc(FIREBASE_DB, "users", userId);
@@ -133,26 +159,33 @@ const ProjectForm = ({ onClick }: any) => {
         });
         await Promise.all(batchUpdates);
       };
-
       await updateUserProjects(Object.keys(memberDetails));
       await updateUserProjects(Object.keys(adminDetails));
-
-      if (data.createTasksWithAI) {
-        console.log("✅ Creating tasks using AI for the project...");
-        await generateAITasks(projectRef.id, data.title);
-      }
+      closeModal();
     } catch (error) {
       console.error("Error saving project:", error);
     } finally {
       setLoading(false);
-      closeModal();
     }
   };
 
-  const generateAITasks = async (projectId: string, title: string) => {
-    console.log(
-      `Generating AI tasks for Project ID: ${projectId}, Title: ${title}`
-    );
+  const handleGenerateTasks = async () => {
+    const taskCountNum = parseInt(taskCount, 10);
+    if (isNaN(taskCountNum) || taskCountNum <= 0) {
+      alert("Please enter a valid number of tasks.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const title = form.getValues("title");
+      console.log(`🚀 Generating ${taskCountNum} AI tasks...`);
+      await generateAITasks(projectId!, title, taskCountNum);
+      console.log("✅ AI task generation completed!");
+    } catch (error) {
+      console.error("❌ Failed to generate AI tasks:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const closeModal = () => {
@@ -163,6 +196,22 @@ const ProjectForm = ({ onClick }: any) => {
     }`;
     window.history.replaceState(null, "", newUrl);
     onClick();
+  };
+
+  const handleEditTask = (
+    id: string,
+    field: "title" | "description" | "dueDate",
+    value: string
+  ) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === id ? { ...task, [field]: value } : task
+      )
+    );
+  };
+
+  const handleDeleteTask = (id: string) => {
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
   };
 
   return (
@@ -236,6 +285,15 @@ const ProjectForm = ({ onClick }: any) => {
               control={form.control}
               fieldType={FormFieldType.M_SEARCHABLE_SELECT}
               allowNewOptions={false}
+              name="skills"
+              label="Add skills, tools, or qualifications required"
+              placeholder="Select multiple admins"
+              options={skills}
+            />
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.M_SEARCHABLE_SELECT}
+              allowNewOptions={false}
               name="members"
               label="Add members to the project"
               placeholder="Select multiple members"
@@ -244,18 +302,79 @@ const ProjectForm = ({ onClick }: any) => {
               optionLabel="name"
             />
             {isNew && (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-4">
                 <input
-                  type="checkbox"
-                  id="createTasksWithAI"
-                  {...form.register("createTasksWithAI")}
-                  defaultChecked={true}
-                  className="w-4 h-4"
+                  type="number"
+                  value={taskCount}
+                  onChange={(e) => setTaskCount(e.target.value)}
+                  className="w-16 p-2 border rounded-md"
+                  min="2"
+                  max="50"
+                  placeholder="2-50"
                 />
-                <label htmlFor="createTasksWithAI" className="text-sm">
-                  Create tasks for the project using AI?
-                </label>
+                <Button
+                  type="button"
+                  onClick={handleGenerateTasks}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Generating..." : "Generate AI Tasks"}
+                </Button>
               </div>
+            )}
+            {tasks.length > 0 && (
+              <>
+                <h3 className="font-bold mb-2">Generated Tasks</h3>
+                <table className="w-full border-collapse border border-gray-700">
+                  <thead>
+                    <tr className="bg-gray-800 text-white">
+                      <th className="p-2 border border-gray-700">Title</th>
+                      <th className="p-2 border border-gray-700">
+                        Description
+                      </th>
+                      <th className="p-2 border border-gray-700">Due Date</th>
+                      <th className="p-2 border border-gray-700">X</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.map((task) => (
+                      <tr key={task.id} className="">
+                        <td className="p-2 border-y border-gray-700">
+                          <input
+                            type="text"
+                            value={task.title}
+                            onChange={(e) =>
+                              handleEditTask(task.id, "title", e.target.value)
+                            }
+                            className="bg-transparent w-full p-1 border rounded-md"
+                          />
+                        </td>
+                        <td className="p-2 border-y border-gray-700">
+                          <input
+                            type="text"
+                            value={task.description}
+                            onChange={(e) =>
+                              handleEditTask(
+                                task.id,
+                                "description",
+                                e.target.value
+                              )
+                            }
+                            className="bg-transparent w-full p-1 border rounded-md"
+                          />
+                        </td>
+                        <td className="p-2 border-y border-gray-700 max-w-28 align-middle">
+                          <DatePickerShadCN date={date} setDate={setDate} />
+                        </td>
+                        <td className="p-2 border-y border-gray-700 cursor-pointer">
+                          <div onClick={() => handleDeleteTask(task.id)}>
+                            <FaDeleteLeft className="text-3xl" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
             )}
             <Button type="submit" disabled={loading} className="w-full">
               {loading

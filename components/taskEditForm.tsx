@@ -1,11 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useSearchParams } from "next/navigation";
 import CustomModal from "@/components/ModalWrapper";
-import { Button } from "@/components/ui/button";
-import DatePickerShadCN from "./DatePicker";
 import {
   doc,
   updateDoc,
@@ -14,9 +11,11 @@ import {
   collection,
 } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import DatePickerShadCN from "./DatePicker";
+import { useSearchParams } from "next/navigation";
 import "react-datepicker/dist/react-datepicker.css";
-import CustomFormField from "./CustomFormField";
-import { FormFieldType } from "@/enum/FormFieldTypes";
 
 interface TaskFormValues {
   title: string;
@@ -27,7 +26,7 @@ interface TaskFormValues {
 
 interface TaskEditModalProps {
   taskId: string;
-  initialData?: Partial<TaskFormValues> & { dueDate?: string | Date };
+  initialData?: Omit<TaskFormValues, "dueDate"> & { dueDate?: string | Date };
   isOpen: boolean;
   onClose: () => void;
 }
@@ -40,78 +39,91 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
 }) => {
   const searchParams = useSearchParams();
   const urlStageId = searchParams.get("columnId");
-  const projectId = searchParams.get("projectId") as string;
+  const projectId = searchParams.get("projectId");
 
-  const { control, register, handleSubmit, reset, setValue } =
-    useForm<TaskFormValues>({
-      defaultValues: {
-        title: "",
-        description: "",
-        dueDate: new Date(),
-        stageId: null,
-      },
-    });
+  const convertDueDate = (d: string | Date | undefined) => {
+    console.log("project id", projectId);
+    if (!d) return undefined;
+    return d instanceof Date ? d : new Date(d);
+  };
+  const convertedDueDate = convertDueDate(initialData?.dueDate);
+  const defaultDueDate = convertedDueDate ?? new Date();
+
+  const { register, handleSubmit, setValue, reset } = useForm<TaskFormValues>();
 
   const [isSaving, setIsSaving] = useState(false);
-  const [date, setDate] = useState<Date | undefined>(
-    initialData?.dueDate ? new Date(initialData.dueDate) : new Date()
-  );
+  const [date, setDate] = useState<Date | undefined>(defaultDueDate);
 
   useEffect(() => {
     if (isOpen) {
-      reset({
-        title: initialData?.title || "",
-        description: initialData?.description || "",
-        dueDate: initialData?.dueDate
-          ? new Date(initialData.dueDate)
-          : new Date(),
-        stageId: initialData?.stageId || urlStageId || null,
-      });
-      setDate(
-        initialData?.dueDate ? new Date(initialData.dueDate) : new Date()
-      );
+      const newDefaults: TaskFormValues = initialData
+        ? {
+            title: initialData.title,
+            description: initialData.description,
+            dueDate: convertedDueDate ?? new Date(),
+            stageId: initialData.stageId,
+          }
+        : {
+            title: "",
+            description: "",
+            dueDate: new Date(),
+            stageId: urlStageId || null,
+          };
+      reset(newDefaults);
+      setDate(newDefaults.dueDate);
     }
-  }, [isOpen, initialData, urlStageId, reset]);
+  }, [isOpen]);
 
   useEffect(() => {
     setValue("dueDate", date);
   }, [date, setValue]);
 
-  const closeModal = useCallback(() => {
+  const closeModal = () => {
     const params = new URLSearchParams(window.location.search);
-    ["modalId", "columnId"].forEach((param) => params.delete(param));
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${
-        params.toString() ? "?" + params.toString() : ""
-      }`
-    );
+    params.delete("projectId");
+    params.delete("columnId");
+    const newUrl = `${window.location.pathname}${
+      params.toString() ? "?" + params.toString() : ""
+    }`;
+    window.history.replaceState(null, "", newUrl);
     onClose();
-  }, [onClose]);
+  };
 
   const onSubmit = async (data: TaskFormValues) => {
     setIsSaving(true);
     try {
-      const payload = {
-        title: data.title,
-        description: data.description,
-        dueDate: data.dueDate
-          ? data.dueDate.toISOString()
-          : new Date().toISOString(),
-        stageId: data.stageId,
-      };
-
       if (taskId === "new") {
-        await addDoc(
-          collection(FIREBASE_DB, "projects", projectId, "tasks"),
-          payload
+        const tasksCollectionRef = collection(
+          FIREBASE_DB,
+          "projects",
+          projectId as string,
+          "tasks"
         );
+        await addDoc(tasksCollectionRef, {
+          title: data.title,
+          description: data.description,
+          dueDate: data.dueDate
+            ? data.dueDate.toISOString()
+            : new Date().toISOString(),
+          stageId: data.stageId,
+        });
       } else {
-        await updateDoc(
-          doc(FIREBASE_DB, "projects", projectId, "tasks", taskId),
-          payload
+        // UPDATE existing task
+        const taskDocRef = doc(
+          FIREBASE_DB,
+          "projects",
+          projectId as string,
+          "tasks",
+          taskId
         );
+        await updateDoc(taskDocRef, {
+          title: data.title,
+          description: data.description,
+          dueDate: data.dueDate
+            ? data.dueDate.toISOString()
+            : new Date().toISOString(),
+          stageId: data.stageId,
+        });
       }
       closeModal();
     } catch (error) {
@@ -124,7 +136,14 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
   const handleDelete = async () => {
     if (taskId === "new") return;
     try {
-      await deleteDoc(doc(FIREBASE_DB, "projects", projectId, "tasks", taskId));
+      const taskDocRef = doc(
+        FIREBASE_DB,
+        "projects",
+        projectId as string,
+        "tasks",
+        taskId
+      );
+      await deleteDoc(taskDocRef);
       closeModal();
     } catch (error) {
       console.error("Failed to delete task:", error);
@@ -134,28 +153,26 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
   return (
     <CustomModal isOpen={isOpen} onClose={closeModal}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <CustomFormField
-          control={control}
-          fieldType={FormFieldType.INPUT}
-          name="title"
-          label="Task Title"
-          placeholder="Enter task title"
-        />
-        <CustomFormField
-          control={control}
-          fieldType={FormFieldType.TEXTAREA}
-          name="description"
-          label="Description"
-          placeholder="Enter task details"
-        />
-        <DatePickerShadCN date={date} setDate={setDate} />
-        <CustomFormField
-          control={control}
-          fieldType={FormFieldType.INPUT}
-          name="stageId"
-          label="Stage ID"
-          placeholder="Enter stage ID"
-        />
+        <div>
+          <label className="block text-sm font-medium">Title</label>
+          <Input {...register("title")} placeholder="Enter title" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Description</label>
+          <textarea
+            {...register("description")}
+            placeholder="Enter description"
+            className="w-full p-2 border rounded-md"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Due Date</label>
+          <DatePickerShadCN date={date} setDate={setDate} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Stage ID</label>
+          <Input {...register("stageId")} placeholder="Enter stage id" />
+        </div>
         <div className="flex justify-end space-x-2">
           {taskId !== "new" && (
             <Button type="button" variant="destructive" onClick={handleDelete}>

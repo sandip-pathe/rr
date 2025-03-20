@@ -249,7 +249,7 @@ const List = () => {
       params.set("columnId", columnId);
       params.set("projectId", selectedProject);
     } else {
-      params.delete("modalId", "new");
+      params.set("modalId", "new");
       params.set("columnId", columnId);
       params.set("projectId", selectedProject);
     }

@@ -29,14 +29,14 @@ const DatePickerShadCN = ({ date, setDate }: DatePickerProps) => {
         <Button
           variant={"outline"}
           className={cn(
-            "w-[240px] justify-start text-left font-normal border-dark-500 bg-dark-400",
+            "justify-start text-left font-normal border-dark-500 bg-dark-400",
             !date && "text-muted-foreground"
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {/* Display the formatted date. If no date was set, show the current date */}
           {isValid(displayDate) ? (
-            format(displayDate, "PPP")
+            format(displayDate, "dd MMMM")
           ) : (
             <span>Pick a date</span>
           )}

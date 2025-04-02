@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { useAuth } from "@/app/auth/AuthContext";
 import { FIREBASE_DB } from "@/FirebaseConfig";
+import { addMessageNotification } from "../../activity/AddNotification";
 
 interface Message {
   id: string;
@@ -79,11 +80,6 @@ export const markMessageAsDelivered = async (
   await updateDoc(messageRef, {
     deliveredAt: serverTimestamp(),
   });
-};
-
-const formatTimestamp = (timestamp: string): string => {
-  const date = new Date(timestamp);
-  return date.toLocaleString();
 };
 
 const ChatDetailPage = () => {

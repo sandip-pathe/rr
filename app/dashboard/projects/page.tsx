@@ -8,21 +8,26 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { FaPlus, FaUsers, FaEllipsisH, FaEye } from "react-icons/fa";
+import { FaPlus, FaUsers, FaEllipsisH, FaEye, FaEdit } from "react-icons/fa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { Avatar } from "@/components/ui/avatar";
 import Modal from "@/components/Modal";
 import ProjectForm from "./newForm";
+import { useAuth } from "@/app/auth/AuthContext";
 
 interface Project {
   id: string;
   title: string;
   status: string;
   dueDate: string;
+  admins: string[];
+  members: string[];
   onClick?: () => void;
 }
+
+type ProjectRole = "admin" | "member" | "none";
 
 const getInitials = (name: string) => {
   const words = name.split(" ").filter(Boolean);
@@ -51,18 +56,39 @@ const getGradientFromInitials = (name: string) => {
   return `linear-gradient(to bottom right, ${colors[index][0]}, ${colors[index][1]})`;
 };
 
+const getUserRole = (project: Project, uid: string): ProjectRole => {
+  if (project.admins?.includes(uid)) return "admin";
+  if (project.members?.includes(uid)) return "member";
+  return "member";
+};
+
 const SkeletonCard = () => (
   <Card className="w-72 h-36 bg-gray-400 animate-pulse rounded-lg"></Card>
 );
 
-const ProjectCard = ({ id, title, onClick, dueDate }: Project) => {
+interface ProjectCardProps extends Project {
+  userRole: ProjectRole;
+  onEdit: (id: string) => void;
+}
+
+const ProjectCard = ({
+  id,
+  title,
+  dueDate,
+  userRole,
+  onEdit,
+}: ProjectCardProps) => {
   const router = useRouter();
   const initials = getInitials(title);
   const gradient = getGradientFromInitials(initials);
 
+  const handleCardClick = () => {
+    router.push(`/dashboard/board?projectId=${id}`);
+  };
+
   return (
     <Card
-      onClick={onClick}
+      onClick={handleCardClick}
       className="w-72 h-36 cursor-pointer transition-transform transform hover:scale-105 bg-cover border-none shadow-md relative overflow-hidden"
       style={{ background: gradient }}
     >
@@ -82,11 +108,26 @@ const ProjectCard = ({ id, title, onClick, dueDate }: Project) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="text-white">
-        <p className="text-xs font-semibold">Due: {dueDate || "N/A"}</p>
+        <div className="flex justify-between items-center">
+          <p className="text-xs font-semibold">Due: {dueDate || "N/A"}</p>
+          <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+            {userRole}
+          </span>
+        </div>
         <div className="flex justify-between items-center mt-2">
           <FaEye className="text-lg cursor-pointer opacity-80 hover:opacity-100" />
           <FaUsers className="text-lg cursor-pointer opacity-80 hover:opacity-100" />
-          <FaEllipsisH className="text-lg cursor-pointer opacity-80 hover:opacity-100" />
+          {userRole === "admin" ? (
+            <FaEdit
+              className="text-lg cursor-pointer opacity-80 hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(id);
+              }}
+            />
+          ) : (
+            <FaEllipsisH className="text-lg cursor-pointer opacity-80 hover:opacity-100" />
+          )}
         </div>
       </CardContent>
     </Card>
@@ -98,6 +139,7 @@ export default function Projects() {
   const [completedProjects, setCompletedProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
   const { replace } = useRouter();
 
   useEffect(() => {
@@ -112,24 +154,36 @@ export default function Projects() {
           title: data.title || "Untitled",
           status: data.status || "Ongoing",
           dueDate: data.dueDate?.toDate().toLocaleDateString() || "N/A",
+          admins: data.admins || [],
+          members: data.members || [],
         };
       });
 
-      setOngoingProjects(projects.filter((p) => p.status !== "Completed"));
-      setCompletedProjects(projects.filter((p) => p.status === "Completed"));
+      // Filter projects where user is either admin or member
+      const userProjects = projects.filter(
+        (p) => getUserRole(p, user?.uid || "") !== "none"
+      );
+
+      setOngoingProjects(userProjects.filter((p) => p.status !== "Completed"));
+      setCompletedProjects(
+        userProjects.filter((p) => p.status === "Completed")
+      );
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user?.uid]);
 
-  const handleTaskAction = async (projectId?: string) => {
-    const params = new URLSearchParams(window.location.search);
-    if (projectId) {
-      params.set("projectId", projectId);
-    } else {
-      params.set("projectId", "new");
-    }
+  const handleEditProject = (projectId: string) => {
+    const params = new URLSearchParams();
+    params.set("projectId", projectId);
+    replace(`/dashboard/projects?${params.toString()}`, { scroll: false });
+    setIsModalOpen(true);
+  };
+
+  const handleCreateProject = () => {
+    const params = new URLSearchParams();
+    params.set("projectId", "new");
     replace(`/dashboard/projects?${params.toString()}`, { scroll: false });
     setIsModalOpen(true);
   };
@@ -152,7 +206,8 @@ export default function Projects() {
                   <ProjectCard
                     key={project.id}
                     {...project}
-                    onClick={() => handleTaskAction(project.id)}
+                    userRole={getUserRole(project, user?.uid || "")}
+                    onEdit={handleEditProject}
                   />
                 ))
               ) : (
@@ -172,7 +227,12 @@ export default function Projects() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {completedProjects.length > 0 ? (
                 completedProjects.map((project) => (
-                  <ProjectCard key={project.id} {...project} />
+                  <ProjectCard
+                    key={project.id}
+                    {...project}
+                    userRole={getUserRole(project, user?.uid || "")}
+                    onEdit={handleEditProject}
+                  />
                 ))
               ) : (
                 <p className="text-gray-400">No completed projects</p>
@@ -184,7 +244,7 @@ export default function Projects() {
 
       <div className="fixed right-12 bottom-12 z-10">
         <button
-          onClick={() => handleTaskAction()}
+          onClick={handleCreateProject}
           className="bg-[#5720B7] text-white p-6 rounded-full shadow-gray-400 shadow-md hover:scale-110 transition-transform"
         >
           <FaPlus className="text-2xl" />

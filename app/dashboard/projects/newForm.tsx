@@ -24,11 +24,33 @@ import { IoClose } from "react-icons/io5";
 import Spiner from "@/components/Spiner";
 import { generateAITasks } from "./helper";
 import { FaDeleteLeft } from "react-icons/fa6";
-import { AnyNaptrRecord } from "node:dns";
 
 interface User {
   id: string;
   name: string;
+}
+
+interface FormValues {
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  tasks: any[];
+  taskCount: number;
+  skills: string[];
+  members: string[];
+  admins: string[];
+  memberDetails: Record<string, string>;
+  adminDetails: Record<string, string>;
+  dueDate: Date | undefined;
+  createTasksWithAI: boolean;
+}
+
+interface ProjectDetails {
+  title: string;
+  description: string;
+  category: string;
+  existingSkills: string[];
 }
 
 const skills = [
@@ -63,12 +85,15 @@ const ProjectForm = ({ onClick }: any) => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [newProjectId, setNewProjectId] = useState<string | null>(null);
 
-  const form = useForm({
+  const form = useForm<FormValues>({
     defaultValues: {
       title: "",
       description: "",
       category: "",
       status: "Ongoing",
+      tasks: [],
+      taskCount: 0,
+      skills: [],
       members: [],
       admins: [],
       memberDetails: {},
@@ -183,13 +208,37 @@ const ProjectForm = ({ onClick }: any) => {
     }
     setIsLoading(true);
     try {
-      const title = form.getValues("title");
-      console.log(`🚀 Generating ${taskCountNum} AI tasks...`);
-      const tasks = await generateAITasks(projectId!, title, taskCountNum);
-      console.log("✅ AI task generation completed!", tasks);
-      setTasks(tasks);
+      const formValues = form.getValues();
+      const projectDetails: ProjectDetails = {
+        title: formValues.title,
+        description: formValues.description,
+        category: formValues.category,
+        existingSkills: formValues.skills || [],
+      };
+
+      const aiSuggestions = await generateAITasks(projectDetails, taskCountNum);
+
+      // Update tasks
+      setTasks(aiSuggestions.tasks);
+
+      // Update form with suggestions
+      form.setValue("skills", [
+        ...formValues.skills,
+        ...aiSuggestions.suggestedSkills,
+      ]);
+      form.setValue("members", [
+        ...formValues.members,
+        ...aiSuggestions.suggestedMembers,
+      ]);
+
+      // Update due date if not set
+      if (!formValues.dueDate && aiSuggestions.recommendedDeadline) {
+        form.setValue("dueDate", new Date(aiSuggestions.recommendedDeadline));
+      }
+
+      console.log("✅ AI suggestions applied:", aiSuggestions);
     } catch (error) {
-      console.error("❌ Failed to generate AI tasks:", error);
+      console.error("❌ Failed to generate AI suggestions:", error);
     } finally {
       setIsLoading(false);
     }

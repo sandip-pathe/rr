@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import NotificationTester from "./test";
 
 const DefaultPage = () => {
   return (
@@ -8,6 +9,7 @@ const DefaultPage = () => {
       <p className="text-gray-500 text-xl">
         Select a conversation to start chatting
       </p>
+      <NotificationTester />
     </div>
   );
 };

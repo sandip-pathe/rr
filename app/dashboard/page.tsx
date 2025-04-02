@@ -5,6 +5,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useRouter } from "next/navigation";
 import Layout from "../../components/Layout";
 import DefaultPage from "./activity/page";
+import Spiner from "@/components/Spiner";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -19,7 +20,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <Layout>
-        <p>Loading...</p>
+        <Spiner />
       </Layout>
     );
   }

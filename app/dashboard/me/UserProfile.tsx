@@ -34,7 +34,7 @@ const PeopleProfileCard = (userProfile: UserProfile) => {
       <CardContent>
         <h4 className="mt-4 font-semibold text-gray-400">Disciplines</h4>
         <ul className="list-disc list-inside flex flex-wrap gap-2">
-          {userProfile.desciplines.map((descipline, index) => (
+          {userProfile.desciplines?.map((descipline, index) => (
             <li key={index}>{descipline}</li>
           ))}
         </ul>
@@ -42,7 +42,7 @@ const PeopleProfileCard = (userProfile: UserProfile) => {
           Skills and Expertise
         </h4>
         <ul className="list-disc list-inside flex flex-wrap gap-2">
-          {userProfile.skills.map((skill, index) => (
+          {userProfile.skills?.map((skill, index) => (
             <span key={index} className="">
               <li>{skill}</li>
             </span>

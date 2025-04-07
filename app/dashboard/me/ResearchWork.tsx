@@ -10,6 +10,8 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/auth/AuthContext";
+import { MdScience } from "react-icons/md";
+import { Button } from "@/components/ui/button";
 
 interface ResearchItem {
   title: string;
@@ -86,7 +88,21 @@ const ResearchWork: React.FC<ResearchWorkProps> = ({ userId }) => {
             <div className="animate-spin border-4 border-gray-300 border-t-transparent rounded-full w-10 h-10"></div>
           </div>
         ) : researchItems.length === 0 ? (
-          <p className="text-center text-gray-400">No items found.</p>
+          <Card className="col-span-full bg-[#252525] border-0">
+            <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+              <MdScience className="text-4xl text-gray-400 mb-4" />
+              <h3 className="text-xl font-medium mb-2">
+                No Research Work Found
+              </h3>
+              <p className="text-gray-400 mb-4">
+                You haven't added any research work yet. Click the button below
+                to add your first project.
+              </p>
+              <Button className="gap-2">
+                <MdScience size={18} /> Add Your first Research Work
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <ul>
             {researchItems.map((item, index) => (

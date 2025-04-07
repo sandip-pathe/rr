@@ -3,7 +3,6 @@
 import * as React from "react";
 import { format, isValid, parseISO } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -14,13 +13,21 @@ import {
 } from "@/components/ui/popover";
 
 interface DatePickerProps {
-  date?: Date | string; // Allow both Date and string (ISO format)
-  setDate: (date: Date | undefined) => void; // Ensure correct type
+  date?: Date | string;
+  setDate: (date: Date | undefined) => void;
 }
 
-const DatePickerShadCN = ({ date, setDate }: DatePickerProps) => {
-  const parsedDate =
-    typeof date === "string" ? parseISO(date) : date ?? new Date(); // Handle string dates
+const DatePickerShadCN = React.memo(({ date, setDate }: DatePickerProps) => {
+  const parsedDate = React.useMemo(() => {
+    if (!date) return undefined;
+    return typeof date === "string" ? parseISO(date) : date;
+  }, [date]);
+
+  const formattedDate = React.useMemo(() => {
+    return parsedDate && isValid(parsedDate)
+      ? format(parsedDate, "dd MMMM")
+      : "Pick a date";
+  }, [parsedDate]);
 
   return (
     <Popover>
@@ -33,21 +40,21 @@ const DatePickerShadCN = ({ date, setDate }: DatePickerProps) => {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {isValid(parsedDate) ? format(parsedDate, "dd MMMM") : "Pick a date"}
+          {formattedDate}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={isValid(parsedDate) ? parsedDate : undefined}
-          onSelect={(selectedDate) =>
-            setDate(isValid(selectedDate) ? selectedDate : undefined)
-          }
+          selected={parsedDate && isValid(parsedDate) ? parsedDate : undefined}
+          onSelect={setDate}
           initialFocus
         />
       </PopoverContent>
     </Popover>
   );
-};
+});
+
+DatePickerShadCN.displayName = "DatePickerShadCN";
 
 export default DatePickerShadCN;

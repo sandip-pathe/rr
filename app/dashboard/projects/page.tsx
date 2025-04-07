@@ -89,7 +89,7 @@ const ProjectCard = ({
   return (
     <Card
       onClick={handleCardClick}
-      className="w-72 h-36 cursor-pointer transition-transform transform hover:scale-105 bg-cover border-none shadow-md relative overflow-hidden"
+      className="w-72 h-40 cursor-pointer transition-transform transform hover:scale-105 bg-cover border-none shadow-md relative overflow-hidden"
       style={{ background: gradient }}
     >
       <CardHeader className="flex flex-row items-center space-x-3 p-4">
@@ -245,7 +245,7 @@ export default function Projects() {
       <div className="fixed right-12 bottom-12 z-10">
         <button
           onClick={handleCreateProject}
-          className="bg-[#5720B7] text-white p-6 rounded-full shadow-gray-400 shadow-md hover:scale-110 transition-transform"
+          className="bg-[#5720B7] text-white p-6 rounded-full hover:scale-110 transition-transform"
         >
           <FaPlus className="text-2xl" />
         </button>

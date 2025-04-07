@@ -18,15 +18,17 @@ const CustomModal: React.FC<CustomModalProps> = ({
 
   const modalRoot = document.getElementById("modal-root");
   const content = (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative w-full max-w-md">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="bg-black rounded-lg shadow-lg relative w-full max-w-md max-h-[90vh] flex flex-col self-center m-auto mt-10 z-100">
         <button
-          className="absolute top-3 right-3 text-gray-600 hover:text-gray-900"
+          className="absolute top-3 right-3 text-gray-400 hover:text-white z-10"
           onClick={onClose}
         >
           &times;
         </button>
-        {children}
+        <div className="overflow-y-auto flex-1 p-6 scrollbar-hide">
+          {children}
+        </div>
       </div>
     </div>
   );

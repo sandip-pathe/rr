@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { FaUsers, FaCalendar } from "react-icons/fa";
 import { CgUserlane } from "react-icons/cg";
-import { MdDashboard, MdMoreHoriz } from "react-icons/md";
+import { MdChatBubble, MdDashboard, MdMoreHoriz } from "react-icons/md";
 import { FcWorkflow } from "react-icons/fc";
 import { IoMdNotifications } from "react-icons/io";
 import { LuMessagesSquare } from "react-icons/lu";
@@ -76,10 +76,11 @@ const links = [
   {
     path: "/dashboard/more",
     icon: (isActive: boolean) => (
-      <MdMoreHoriz
+      <MdChatBubble
         className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}
       />
     ),
+    label: "Chats",
   },
 ];
 
@@ -99,7 +100,7 @@ const Sidebar = () => {
             <div
               className={`items-center hover:bg-gray-700 p-4 justify-center hover:border-l-4 hover:border-gray-700 ${
                 pathname === link.path
-                  ? "bg-gray-700 border-l-4 border-indigo-500"
+                  ? "bg-gray-700 border-l-4 border-indigo-400"
                   : "border-l-4 border-[#0b0b0A]"
               }`}
             >

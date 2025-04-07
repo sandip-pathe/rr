@@ -6,28 +6,21 @@ import { z } from "zod";
 import { Form } from "@/components/ui/form";
 import CustomFormField from "../CustomFormField";
 import SubmitButton from "../SubmitButton";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { FIREBASE_AUTH } from "@/FirebaseConfig";
 import { LoginFormValidation } from "@/lib/Validation";
 import Link from "next/link";
-import { useAuth } from "../../app/auth/AuthContext";
 
 export enum FormFieldType {
   INPUT = "input",
 }
 
 const LoginPage = () => {
-  const { user } = useAuth(); // Get current user from AuthContext
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    if (user) {
-      router.push("/dashboard");
-    }
-  }, [user, router]);
 
   const form = useForm<z.infer<typeof LoginFormValidation>>({
     resolver: zodResolver(LoginFormValidation),

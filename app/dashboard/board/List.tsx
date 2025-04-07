@@ -27,14 +27,9 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { useAuth } from "@/app/auth/AuthContext";
-import { FaInfo, FaPlus } from "react-icons/fa";
+import { FaInfo } from "react-icons/fa";
 import Spiner from "@/components/Spiner";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 
 interface Task {
@@ -63,8 +58,13 @@ interface Project {
   admins: string[];
   dueDate?: Date;
   createdAt: Date;
-  memberDetails?: { id: string; name: string }[];
-  adminDetails?: { id: string; name: string }[];
+  memberDetails: Record<string, string>;
+  adminDetails: Record<string, string>;
+}
+
+interface ProjectMember {
+  id: string;
+  name: string;
 }
 
 type ProjectRole = "admin" | "member" | "none";
@@ -81,9 +81,31 @@ const List = () => {
   const [projectRole, setProjectRole] = useState<ProjectRole>("none");
   const [memberHasNoTasks, setMemberHasNoTasks] = useState(false);
   const [selectedProject, setSelectedProject] = useState<string>("");
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+  const [projectAdmins, setProjectAdmins] = useState<ProjectMember[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const modalId = searchParams.get("modalId");
   const projectIdFromUrl = searchParams.get("projectId");
+
+  const getUserRole = (project: Project, uid: string | null): ProjectRole => {
+    if (!uid) return "none";
+    if (project.admins.includes(uid)) return "admin";
+    if (project.members.includes(uid)) return "member";
+    return "none";
+  };
+
+  const setLastSelectedProject = (projectId: string) => {
+    localStorage.setItem("lastProject", projectId);
+  };
+
+  const getLastSelectedProject = () => {
+    return localStorage.getItem("lastProject");
+  };
+
+  const selectedProjectData = useMemo(() => {
+    return projects.find((p) => p.id === selectedProject);
+  }, [projects, selectedProject]);
 
   const tasksRef = useMemo(() => {
     return selectedProject
@@ -103,32 +125,21 @@ const List = () => {
     return { unassignedStage, columns };
   }, [tasks, stages]);
 
-  const getUserRole = (project: Project, uid: string | null): ProjectRole => {
-    if (!uid) return "none";
-    if (project.admins.includes(uid)) return "admin";
-    if (project.members.includes(uid)) return "member";
-    return "none";
-  };
-
-  const setLastSelectedProject = (projectId: string) => {
-    localStorage.setItem("lastProject", projectId);
-  };
-
-  const getLastSelectedProject = () => {
-    return localStorage.getItem("lastProject");
+  const transformMemberData = (
+    members: Record<string, string> | undefined
+  ): ProjectMember[] => {
+    if (!members) return [];
+    return Object.entries(members).map(([id, name]) => ({ id, name }));
   };
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      console.log("No authenticated user found.");
-      return;
-    }
+    if (authLoading || !user) return;
+
     const fetchUserProjects = async () => {
-      setUserId(user?.uid);
+      setUserId(user.uid);
       setIsLoading(true);
       try {
-        const userRef = doc(FIREBASE_DB, "users", userId!);
+        const userRef = doc(FIREBASE_DB, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
@@ -149,20 +160,11 @@ const List = () => {
             if (!projectSnap.exists()) return null;
 
             const projectData = projectSnap.data();
-
-            // Convert map of IDs to array of objects
-            const transformDetails = (
-              detailsMap: Record<string, string> | undefined
-            ) =>
-              detailsMap
-                ? Object.entries(detailsMap).map(([id, name]) => ({ id, name }))
-                : [];
-
             return {
               id,
               ...projectData,
-              memberDetails: transformDetails(projectData.memberDetails),
-              adminDetails: transformDetails(projectData.adminDetails),
+              memberDetails: projectData.memberDetails || {},
+              adminDetails: projectData.adminDetails || {},
             } as Project;
           })
         );
@@ -172,13 +174,23 @@ const List = () => {
         );
         setProjects(fetchedProjects);
 
-        const projectToSelect =
-          projectIdFromUrl ||
-          getLastSelectedProject() ||
-          fetchedProjects[0]?.id;
+        // Determine which project to select
+        let projectToSelect = projectIdFromUrl || getLastSelectedProject();
+
+        // If no project specified, try to use the first one
+        if (!projectToSelect && fetchedProjects.length > 0) {
+          projectToSelect = fetchedProjects[0].id;
+        }
 
         if (projectToSelect) {
-          handleProjectSelection(projectToSelect, fetchedProjects);
+          // Find the project in fetched projects
+          const project = fetchedProjects.find((p) => p.id === projectToSelect);
+          if (project) {
+            setSelectedProject(project.id);
+            setProjectRole(getUserRole(project, user.uid));
+            setLastSelectedProject(project.id);
+            updateUrlParams({ projectId: project.id });
+          }
         }
       } catch (error) {
         console.error("Error fetching projects:", error);
@@ -188,7 +200,7 @@ const List = () => {
     };
 
     fetchUserProjects();
-  }, [userId, authLoading, projectIdFromUrl]);
+  }, [authLoading, projectIdFromUrl]);
 
   useEffect(() => {
     if (!selectedProject || !userId) return;
@@ -196,18 +208,25 @@ const List = () => {
     const fetchProjectAndTasks = async () => {
       try {
         setIsLoading(true);
+
+        // Get fresh project data to ensure we have the correct role
         const projectRef = doc(FIREBASE_DB, "projects", selectedProject);
         const projectSnap = await getDoc(projectRef);
 
-        if (projectSnap.exists()) {
-          const projectData = projectSnap.data() as Project;
-          setProjectRole(getUserRole(projectData, userId));
+        if (!projectSnap.exists()) {
+          console.warn("Project not found");
+          return;
         }
+
+        const projectData = projectSnap.data() as Project;
+        const currentRole = getUserRole(projectData, userId);
+        setProjectRole(currentRole);
 
         if (!tasksRef) return;
 
+        // Build the appropriate query based on role
         const tasksQuery =
-          projectRole === "admin"
+          currentRole === "admin"
             ? query(tasksRef)
             : query(tasksRef, where("assignedToIds", "array-contains", userId));
 
@@ -217,12 +236,7 @@ const List = () => {
             ...doc.data(),
           })) as Task[];
 
-          if (snapshot.empty && projectRole === "member") {
-            setMemberHasNoTasks(true);
-          } else {
-            setMemberHasNoTasks(false);
-          }
-
+          setMemberHasNoTasks(snapshot.empty && currentRole === "member");
           setTasks(fetchedTasks);
           setIsLoading(false);
         });
@@ -235,7 +249,7 @@ const List = () => {
     };
 
     fetchProjectAndTasks();
-  }, [selectedProject, userId]);
+  }, [selectedProject, refreshTrigger]);
 
   useEffect(() => {
     const fetchStages = () => {
@@ -264,18 +278,26 @@ const List = () => {
     setIsModalOpen(!!modalId);
   }, [modalId]);
 
-  const handleProjectSelection = (
-    projectId: string,
-    projectsList: Project[] = projects
-  ) => {
-    setSelectedProject(projectId);
-    const project = projectsList.find((p) => p.id === projectId);
-    if (project) {
+  useEffect(() => {
+    if (!selectedProjectData) return;
+
+    setProjectMembers(transformMemberData(selectedProjectData.memberDetails));
+    setProjectAdmins(transformMemberData(selectedProjectData.adminDetails));
+  }, [selectedProjectData]);
+
+  // Handle project selection
+  const handleProjectSelection = useCallback(
+    (projectId: string, projectsList: Project[] = projects) => {
+      const project = projectsList.find((p) => p.id === projectId);
+      if (!project) return;
+
+      setSelectedProject(projectId);
       setProjectRole(getUserRole(project, userId));
-    }
-    setLastSelectedProject(projectId);
-    updateUrlParams({ projectId });
-  };
+      setLastSelectedProject(projectId);
+      updateUrlParams({ projectId });
+    },
+    [projects, userId]
+  );
 
   const handleOnDragEnd = async (event: DragEndEvent) => {
     const newStageId = event.over?.id as string | undefined | null;
@@ -348,9 +370,27 @@ const List = () => {
   const closeModal = () => {
     const params = new URLSearchParams(window.location.search);
     params.delete("modalId");
+    params.delete("columnId");
     window.history.replaceState(null, "", `?${params.toString()}`);
     setIsModalOpen(false);
+    setRefreshTrigger((prev) => prev + 1);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Spiner />
+      </div>
+    );
+  }
+
+  if (projects.length === 0 && !isLoading) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <p>No projects found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -445,11 +485,13 @@ const List = () => {
         )}
 
         <TaskEditModal
-          key={`${modalId}-${Date.now()}`}
+          key={modalId || "new"}
           taskId={modalId || ""}
           initialData={tasks.find((task) => task.id === modalId)}
           isOpen={isModalOpen}
           onClose={closeModal}
+          projectMembers={projectMembers}
+          projectAdmins={projectAdmins}
         />
       </KanbanBoardContainer>
     </div>

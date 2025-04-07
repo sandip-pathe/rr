@@ -180,6 +180,8 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
             <Input
               placeholder={placeholder}
               type={type || "text"}
+              value={field.value || ""}
+              onChange={field.onChange}
               {...field}
               className="shad-input border-0"
             />

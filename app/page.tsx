@@ -3,8 +3,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import LoginForm from "@/components/forms/LoginForm";
+import { useAuth } from "./auth/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
   return (
     <div className="flex h-screen max-h-screen">
       <section className="container my-auto">

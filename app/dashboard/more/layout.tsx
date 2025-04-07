@@ -1,44 +1,126 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import Link from "next/link";
+import React, { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import Layout from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDate } from "../ama/helper";
+import { formatDistanceToNow } from "date-fns";
 import { usePageHeading } from "@/app/auth/PageHeadingContext";
-import { MdAddComment } from "react-icons/md";
+import { MdAddComment, MdSearch } from "react-icons/md";
+import { useAuth } from "@/app/auth/AuthContext";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { FIREBASE_DB } from "@/FirebaseConfig";
+import Link from "next/link";
 
-interface Chat {
+interface ChatListItem {
   id: string;
-  name: string;
-  lastMessage: string;
-  timestamp: string;
+  participants: string[];
+  lastMessage?: string;
+  lastMessageAt?: Date;
+  lastMessageSender?: string;
+  otherParticipant?: {
+    id: string;
+    name: string;
+    avatar?: string;
+    isOnline: boolean;
+  };
 }
 
-const dummyChats: Chat[] = [
-  {
-    id: "chat1",
-    name: "Alice Johnson",
-    lastMessage: "Hey, are we still on for the meeting?",
-    timestamp: "2025-02-09T10:30:00Z",
-  },
-  {
-    id: "chat2",
-    name: "Bob Smith",
-    lastMessage: "I have updated the project docs.",
-    timestamp: "2025-02-09T09:15:00Z",
-  },
-  {
-    id: "chat3",
-    name: "Charlie Brown",
-    lastMessage: "Can we catch up later today?",
-    timestamp: "2025-02-08T15:45:00Z",
-  },
-];
+interface User {
+  id: string;
+  name: string;
+  photoURL?: string;
+  email: string;
+  isOnline?: boolean;
+}
 
-const MsgLayout = ({ children }: { children: React.ReactNode }) => {
+const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const { setHeading, setIsVisible } = usePageHeading();
+  const { user } = useAuth();
+  const [chats, setChats] = useState<ChatListItem[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const pathname = usePathname();
+  const db = FIREBASE_DB;
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const fetchInitialData = async () => {
+      try {
+        setLoadingUsers(true);
+        const usersSnapshot = await getDocs(
+          query(collection(db, "users"), where("uid", "!=", user.uid))
+        );
+        const usersData = usersSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as User[];
+        setAllUsers(usersData);
+        setLoadingUsers(false);
+
+        const unsubscribe = onSnapshot(
+          query(
+            collection(db, "chats"),
+            where("participants", "array-contains", user.uid),
+            orderBy("lastMessageAt", "desc")
+          ),
+          async (snapshot) => {
+            const chatsData = await Promise.all(
+              snapshot.docs.map(async (chatDoc) => {
+                const data = chatDoc.data();
+                const otherParticipantId = data.participants.find(
+                  (id: string) => id !== user.uid
+                );
+
+                const userDoc = await getDoc(
+                  doc(db, "users", otherParticipantId)
+                );
+                const participantData = userDoc.data();
+
+                return {
+                  id: chatDoc.id,
+                  participants: data.participants,
+                  lastMessage: data.lastMessage,
+                  lastMessageAt: data.lastMessageAt?.toDate(),
+                  lastMessageSender: data.lastMessageSender,
+                  otherParticipant: {
+                    id: otherParticipantId,
+                    name: participantData?.name || "Unknown",
+                    avatar: participantData?.photoURL,
+                    isOnline: participantData?.isOnline || false,
+                  },
+                };
+              })
+            );
+
+            setChats(chatsData);
+            setLoading(false);
+          }
+        );
+
+        return () => unsubscribe();
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setLoading(false);
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchInitialData();
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!headingRef.current) return;
@@ -56,10 +138,25 @@ const MsgLayout = ({ children }: { children: React.ReactNode }) => {
     };
   }, [setHeading, setIsVisible]);
 
+  const filteredChats = chats.filter((chat) =>
+    chat.otherParticipant?.name
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  const filteredUsers = allUsers.filter(
+    (userItem) =>
+      !chats.some((chat) => chat.participants.includes(userItem.id)) &&
+      (userItem.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        userItem.email?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <Layout>
       <div className="flex h-screen">
-        <div className="w-1/3 p-2 bg-[#1a1b1b] border-x border-gray-500 overflow-y-auto">
+        <div
+          className={`hidden md:block md:w-1/3 p-2 bg-[#1a1b1b] border-x border-gray-500 overflow-y-auto`}
+        >
           <div className="flex flex-row items-center justify-between">
             <h1
               ref={headingRef}
@@ -69,49 +166,141 @@ const MsgLayout = ({ children }: { children: React.ReactNode }) => {
             </h1>
             <MdAddComment className="text-3xl text-gray-300 cursor-pointer" />
           </div>
-          <input
-            type="text"
-            placeholder="Search chats..."
-            className="w-full self-center p-2 bg-[#252525] rounded-md mb-5"
-          />
-          <ul>
-            {dummyChats.map((chat) => (
-              <li
-                key={chat.id}
-                className={`p-2 mb-2 flex flex-row items-center cursor-pointer rounded-sm shadow-sm ${
-                  chat.lastMessage ? "bg-[#252525]" : "font-bold opacity-70"
-                }`}
-              >
-                <Link
-                  href={`/dashboard/more/${chat.id}`}
-                  className="flex w-full items-center"
-                >
-                  <Avatar className="h-10 w-10 m-2">
-                    <AvatarImage src="https://github.com/shadcn.png" />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col w-full">
-                    <div className="flex flex-row items-center justify-between">
-                      <h2 className="text-base font-bold max-w-[70%] line-clamp-1">
-                        {chat.name}
-                      </h2>
-                      <span className="text-xs text-blue-400 line-clamp-1">
-                        {formatDate(chat.timestamp)}
-                      </span>
+
+          {/* Search Input */}
+          <div className="relative mb-4">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MdSearch className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search chats or users..."
+              className="w-full pl-10 pr-4 py-2 bg-[#252525] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : (
+            <>
+              {filteredChats.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-300 mb-2 px-2">
+                    Your Chats
+                  </h2>
+                  <ul>
+                    {filteredChats.map((chat) => (
+                      <li
+                        key={chat.id}
+                        className={`p-2 mb-2 flex flex-row items-center cursor-pointer rounded-sm shadow-sm ${
+                          pathname.includes(chat.id)
+                            ? "bg-[#303030]"
+                            : "bg-[#252525]"
+                        } hover:bg-[#303030] transition`}
+                      >
+                        <Link
+                          href={`/dashboard/more/${chat.id}`}
+                          className="flex w-full items-center"
+                        >
+                          <Avatar className="h-10 w-10 m-2">
+                            <AvatarImage src={chat.otherParticipant?.avatar} />
+                            <AvatarFallback>
+                              {chat.otherParticipant?.name
+                                ?.charAt(0)
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col w-full">
+                            <div className="flex flex-row items-center justify-between">
+                              <h2 className="text-base font-bold max-w-[70%] line-clamp-1">
+                                {chat.otherParticipant?.name}
+                              </h2>
+                              <span className="text-xs text-blue-400 line-clamp-1">
+                                {chat.lastMessageAt &&
+                                  formatDistanceToNow(chat.lastMessageAt, {
+                                    addSuffix: true,
+                                  })}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <p className="text-sm text-gray-400 line-clamp-1 max-w-[80%]">
+                                {chat.lastMessage}
+                              </p>
+                              {chat.lastMessageSender === user?.uid && (
+                                <span className="text-xs text-gray-500">
+                                  ✓✓
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {(searchTerm || filteredUsers.length > 0) && (
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-300 mb-2 px-2">
+                    {searchTerm ? "Search Results" : "All Users"}
+                  </h2>
+                  {loadingUsers ? (
+                    <div className="flex justify-center items-center h-32">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
                     </div>
-                    <p className="text-sm text-gray-400 line-clamp-1">
-                      {chat.lastMessage}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  ) : (
+                    <ul>
+                      {filteredUsers.map((userItem) => (
+                        <li
+                          key={userItem.id}
+                          className="p-2 mb-2 flex flex-row items-center cursor-pointer rounded-sm shadow-sm bg-[#252525] hover:bg-[#303030] transition"
+                        >
+                          <Link
+                            href={`/dashboard/more/${userItem.id}`}
+                            className="flex w-full items-center"
+                          >
+                            <Avatar className="h-10 w-10 m-2">
+                              <AvatarImage src={userItem.photoURL} />
+                              <AvatarFallback>
+                                {userItem.name?.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col w-full">
+                              <div className="flex flex-row items-center justify-between">
+                                <h2 className="text-base font-bold max-w-[70%] line-clamp-1">
+                                  {userItem.name}
+                                </h2>
+                                <span
+                                  className={`h-2 w-2 rounded-full ${
+                                    userItem.isOnline
+                                      ? "bg-green-500"
+                                      : "bg-gray-500"
+                                  }`}
+                                ></span>
+                              </div>
+                              <p className="text-sm text-gray-400 line-clamp-1">
+                                {userItem.email}
+                              </p>
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
-        <div className="w-2/3 overflow-hidden">{children}</div>
+        <div className={`w-full md:w-2/3 overflow-hidden`}>{children}</div>
       </div>
     </Layout>
   );
 };
 
-export default MsgLayout;
+export default MessagesLayout;

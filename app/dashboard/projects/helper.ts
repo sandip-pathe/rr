@@ -1,7 +1,5 @@
-const API_URL = "https://api.openai.com/v1/chat/completions";
-
-const OPENAI_API_KEY =
-  "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";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const API_URL: string = process.env.API_URL || "https://default-api-url.com";
 
 interface ProjectDetails {
   title: string;

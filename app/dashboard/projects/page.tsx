@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { collection, query, onSnapshot, getDocs } from "firebase/firestore";
 import Layout from "@/components/Layout";
 import {
   Collapsible,
@@ -146,49 +146,54 @@ export default function Projects() {
   const { replace } = useRouter();
 
   useEffect(() => {
-    if (!user?.uid) return;
+    const fetchProjects = async () => {
+      if (!user?.uid) return;
 
-    const projectsRef = collection(FIREBASE_DB, "projects");
-    const q = query(projectsRef);
+      try {
+        setLoading(true);
+        const projectsRef = collection(FIREBASE_DB, "projects");
+        const snapshot = await getDocs(projectsRef);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const projects: Project[] = [];
+        const projects: Project[] = [];
 
-      snapshot.docs.forEach((doc) => {
-        const data = doc.data();
-        const userId = user?.uid || "";
-        const role = getUserRole(
-          {
-            id: doc.id,
-            title: data.title || "Untitled",
-            status: data.status || "Ongoing",
-            dueDate: data.dueDate?.toDate().toLocaleDateString() || "N/A",
-            admins: data.admins || [],
-            members: data.members || [],
-          },
-          userId
-        );
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          const userId = user.uid;
+          const role = getUserRole(
+            {
+              id: doc.id,
+              title: data.title || "Untitled",
+              status: data.status || "Ongoing",
+              dueDate: data.dueDate?.toDate().toLocaleDateString() || "N/A",
+              admins: data.admins || [],
+              members: data.members || [],
+            },
+            userId
+          );
 
-        // Only include projects where user has a role
-        if (role !== "none") {
-          projects.push({
-            id: doc.id,
-            title: data.title || "Untitled",
-            status: data.status || "Ongoing",
-            dueDate: data.dueDate?.toDate().toLocaleDateString() || "N/A",
-            admins: data.admins || [],
-            members: data.members || [],
-            userRole: role, // Include user's role in the project data
-          });
-        }
-      });
+          if (role !== "none") {
+            projects.push({
+              id: doc.id,
+              title: data.title || "Untitled",
+              status: data.status || "Ongoing",
+              dueDate: data.dueDate?.toDate().toLocaleDateString() || "N/A",
+              admins: data.admins || [],
+              members: data.members || [],
+              userRole: role,
+            });
+          }
+        });
 
-      setOngoingProjects(projects.filter((p) => p.status !== "Completed"));
-      setCompletedProjects(projects.filter((p) => p.status === "Completed"));
-      setLoading(false);
-    });
+        setOngoingProjects(projects.filter((p) => p.status !== "Completed"));
+        setCompletedProjects(projects.filter((p) => p.status === "Completed"));
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return () => unsubscribe();
+    fetchProjects();
   }, [user?.uid]);
 
   const handleEditProject = (projectId: string) => {

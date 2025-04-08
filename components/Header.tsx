@@ -14,7 +14,6 @@ import {
 import { useAuth } from "@/app/auth/AuthContext";
 import { useRouter } from "next/navigation";
 import { usePageHeading } from "@/app/auth/PageHeadingContext";
-import { useState } from "react";
 
 const Header = () => {
   const { user, logout, loading, name, role } = useAuth();

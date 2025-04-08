@@ -8,19 +8,18 @@ import { useAuth } from "@/app/auth/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  sendMessage,
-  markMessagesAsRead,
-  getOrCreateChat,
-} from "../ChatServices";
-import {
   collection,
   doc,
   getDoc,
-  onSnapshot,
-  orderBy,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
   query,
+  orderBy,
+  getDocs,
 } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
+import Spiner from "@/components/Spiner";
 
 interface Message {
   id: string;
@@ -31,7 +30,7 @@ interface Message {
 }
 
 export default function ChatPage() {
-  const { id: chatId } = useParams() as { id: string };
+  const { id: otherUserId } = useParams() as { id: string };
   const { user } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -43,126 +42,162 @@ export default function ChatPage() {
     avatar?: string;
     isOnline: boolean;
   } | null>(null);
+  const [chatId, setChatId] = useState("");
+  const [error, setError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Check if chat exists or needs to be created
+  const generateChatId = (uid1: string, uid2: string) => {
+    return [uid1, uid2].sort().join("_");
+  };
+
   useEffect(() => {
-    if (!user?.uid || !chatId) return;
+    if (!user?.uid || !otherUserId) return;
 
     const initializeChat = async () => {
       try {
-        if (chatId !== user.uid && !chatId.includes("_")) {
-          const existingChatId = await getOrCreateChat(user.uid, chatId);
-          if (existingChatId !== chatId) {
-            router.replace(`/dashboard/more/${existingChatId}`);
-            return;
-          }
+        setLoading(true);
+        setError("");
+
+        const newChatId = generateChatId(user.uid, otherUserId);
+        setChatId(newChatId);
+
+        // Check if other user exists
+        const otherUserDoc = await getDoc(
+          doc(FIREBASE_DB, "users", otherUserId)
+        );
+        if (!otherUserDoc.exists()) {
+          setError("User not found");
+          setLoading(false);
+          return;
         }
 
+        setParticipant({
+          id: otherUserId,
+          name:
+            otherUserDoc.data().displayName ||
+            otherUserDoc.data().name ||
+            "Unknown",
+          avatar: otherUserDoc.data().photoURL,
+          isOnline: otherUserDoc.data().isOnline || false,
+        });
+
+        // Check/create chat document
+        const chatDocRef = doc(FIREBASE_DB, "chats", newChatId);
+        const chatDoc = await getDoc(chatDocRef);
+
+        if (!chatDoc.exists()) {
+          await setDoc(chatDocRef, {
+            participants: [user.uid, otherUserId],
+            lastMessage: "",
+            lastMessageAt: serverTimestamp(),
+            lastMessageSender: "",
+            createdAt: serverTimestamp(),
+          });
+        }
+
+        // Load initial messages (without real-time listener)
         const messagesRef = collection(
           FIREBASE_DB,
           "chats",
-          chatId,
+          newChatId,
           "messages"
         );
-        const q = query(messagesRef, orderBy("timestamp", "asc"));
+        const messagesQuery = query(messagesRef, orderBy("timestamp", "asc"));
+        const messagesSnapshot = await getDocs(messagesQuery);
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const msgs = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            senderId: doc.data().senderId,
-            content: doc.data().content,
-            timestamp: doc.data().timestamp?.toDate(),
-            status: doc.data().status || "sent",
-          })) as Message[];
+        const msgs = messagesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          senderId: doc.data().senderId,
+          content: doc.data().content,
+          timestamp: doc.data().timestamp?.toDate(),
+          status: doc.data().status || "sent",
+        })) as Message[];
 
-          setMessages(msgs);
-          setLoading(false);
+        setMessages(msgs);
+        setLoading(false);
 
-          // Mark messages as read
-          const unreadMessages = msgs.filter(
-            (msg) => msg.senderId !== user.uid && msg.status !== "read"
+        // Mark messages as read
+        const unreadMessages = msgs.filter(
+          (msg) => msg.senderId !== user.uid && msg.status !== "read"
+        );
+
+        if (unreadMessages.length > 0) {
+          const updatePromises = unreadMessages.map((msg) =>
+            updateDoc(
+              doc(FIREBASE_DB, "chats", newChatId, "messages", msg.id),
+              {
+                status: "read",
+              }
+            )
           );
-          if (unreadMessages.length > 0) {
-            markMessagesAsRead(
-              chatId,
-              user.uid,
-              unreadMessages.map((msg) => msg.id)
-            );
-          }
 
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        });
+          await Promise.all(updatePromises);
+          await updateDoc(chatDocRef, {
+            lastMessage: msgs[msgs.length - 1]?.content || "",
+            lastMessageAt: serverTimestamp(),
+            lastMessageSender: msgs[msgs.length - 1]?.senderId || "",
+          });
+        }
 
-        return () => unsubscribe();
-      } catch (error) {
-        console.error("Error initializing chat:", error);
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      } catch (err) {
+        console.error("Error initializing chat:", err);
+        setError("Failed to load chat. Please try again.");
         setLoading(false);
       }
     };
 
     initializeChat();
-  }, [chatId, user?.uid]);
-
-  // Fetch participant info
-  useEffect(() => {
-    if (!chatId || !user?.uid) return;
-
-    const fetchParticipant = async () => {
-      try {
-        const chatDoc = await getDoc(doc(FIREBASE_DB, "chats", chatId));
-        if (chatDoc.exists()) {
-          const participants = chatDoc.data().participants;
-          const otherParticipantId = participants.find(
-            (id: string) => id !== user.uid
-          );
-
-          if (otherParticipantId) {
-            const userDoc = await getDoc(
-              doc(FIREBASE_DB, "users", otherParticipantId)
-            );
-            if (userDoc.exists()) {
-              setParticipant({
-                id: otherParticipantId,
-                name: userDoc.data().displayName,
-                avatar: userDoc.data().photoURL,
-                isOnline: userDoc.data().isOnline || false,
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching participant:", error);
-      }
-    };
-
-    fetchParticipant();
-  }, [chatId, user?.uid]);
+  }, [otherUserId, user?.uid]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user?.uid || !chatId) return;
 
     try {
-      await sendMessage(chatId, user.uid, newMessage);
+      const messagesRef = collection(FIREBASE_DB, "chats", chatId, "messages");
+      const newMessageRef = doc(messagesRef);
+
+      await setDoc(newMessageRef, {
+        senderId: user.uid,
+        content: newMessage,
+        timestamp: serverTimestamp(),
+        status: "sent",
+      });
+
+      const chatDocRef = doc(FIREBASE_DB, "chats", chatId);
+      await updateDoc(chatDocRef, {
+        lastMessage: newMessage,
+        lastMessageAt: serverTimestamp(),
+        lastMessageSender: user.uid,
+      });
+
       setNewMessage("");
-    } catch (error) {
-      console.error("Error sending message:", error);
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setError("Failed to send message");
     }
   };
 
-  if (loading) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex flex-col items-center justify-center h-full text-red-500">
+        <p>{error}</p>
+        <Button onClick={() => router.push("/dashboard/more")} className="mt-4">
+          Back to Chats
+        </Button>
       </div>
     );
   }
 
+  if (loading) {
+    return <Spiner />;
+  }
+
   return (
-    <div className="flex flex-col h-full bg-[#1a1b1b] text-white">
+    <div className="flex flex-col h-full">
       {participant && (
-        <header className="h-16 flex items-center p-4 border-b border-gray-700 sticky top-0 z-10 bg-[#1a1b1b]">
+        <header className="h-14 flex items-center p-4 border-b border-gray-700 sticky top-0 z-10 bg-[#1a1b1b]">
           <Avatar className="h-10 w-10 mr-3">
             <AvatarImage src={participant.avatar} />
             <AvatarFallback>
@@ -227,14 +262,14 @@ export default function ChatPage() {
           <Input
             type="text"
             placeholder="Type a message..."
-            className="flex-1 bg-[#252525] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-[#252525] rounded-lg px-4 py-2"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
           />
           <Button
             type="submit"
             disabled={!newMessage.trim()}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-700 hover:bg-blue-400 text-white rounded-lg px-4 py-2"
           >
             Send
           </Button>

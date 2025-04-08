@@ -71,6 +71,13 @@ const Header = () => {
             </DropdownMenuLabel>
           )}
           <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => {
+              router.push("dashboard/me");
+            }}
+          >
+            Profile
+          </DropdownMenuItem>
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
         </DropdownMenuContent>

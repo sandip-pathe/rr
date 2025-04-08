@@ -34,6 +34,7 @@ import {
   FaChalkboardTeacher,
 } from "react-icons/fa";
 import { MdScience, MdBusinessCenter } from "react-icons/md";
+import { useParams, useSearchParams } from "next/navigation";
 
 interface UserProfile {
   name: string;
@@ -80,7 +81,7 @@ const PublicUserProfile = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isFollowing, setIsFollowing] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const userId = `rPnx65wC5KOaj9hfAlargR3vP4L2`;
+  const { userid: userId } = useParams();
 
   useEffect(() => {
     if (!userId) {
@@ -91,7 +92,9 @@ const PublicUserProfile = () => {
 
     const fetchUserProfile = async () => {
       try {
-        const userDoc = await getDoc(doc(FIREBASE_DB, "users", userId));
+        const userDoc = await getDoc(
+          doc(FIREBASE_DB, "users", userId as string)
+        );
         if (userDoc.exists()) {
           const data = userDoc.data() as UserProfile;
           setUserProfile({
@@ -437,7 +440,7 @@ const PublicUserProfile = () => {
             <TabsContent value="research" className="mt-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                  <ResearchWork userId={userId} />
+                  <ResearchWork userId={userId as string} />
                 </div>
 
                 <div className="space-y-6">

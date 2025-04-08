@@ -11,6 +11,7 @@ import DatePickerShadCN from "@/components/DatePicker";
 import { FormFieldType } from "../../../enum/FormFieldTypes";
 import { useAuth } from "@/app/auth/AuthContext";
 import { MdCloudUpload } from "react-icons/md";
+import { IoIosClose } from "react-icons/io";
 
 const workTypes = [
   "Article",
@@ -122,10 +123,12 @@ const AddWork: React.FC<Props> = ({ onClick }) => {
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-6 flex-1 bg-black p-8"
       >
+        <button className="" onClick={onClick}>
+          <IoIosClose className="bg-red" size={24} />
+        </button>
         <h1 className="header">Add Your Work</h1>
-
         <div>
-          <h3 className="mb-2 font-semibold">Publication Type</h3>
+          <h3 className="mb-2 font-semibold">Work Type</h3>
           <CustomFormField
             control={form.control}
             fieldType={FormFieldType.SEARCHABLE_SELECT}

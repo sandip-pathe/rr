@@ -3,8 +3,13 @@
 import { useRouter, usePathname } from "next/navigation";
 import { FaUsers, FaCalendar } from "react-icons/fa";
 import { CgUserlane } from "react-icons/cg";
-import { MdChatBubble, MdDashboard, MdMoreHoriz } from "react-icons/md";
-import { FcWorkflow } from "react-icons/fc";
+import {
+  MdChatBubble,
+  MdDashboard,
+  MdExplore,
+  MdMoreHoriz,
+} from "react-icons/md";
+import { FcSearch, FcWorkflow } from "react-icons/fc";
 import { IoMdNotifications } from "react-icons/io";
 import { LuMessagesSquare } from "react-icons/lu";
 import { FaGoogleScholar } from "react-icons/fa6";
@@ -18,6 +23,15 @@ const links = [
       />
     ),
     label: "Activity",
+  },
+  {
+    path: "/dashboard/more",
+    icon: (isActive: boolean) => (
+      <MdChatBubble
+        className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}
+      />
+    ),
+    label: "Chats",
   },
   {
     path: "/dashboard/projects",
@@ -38,6 +52,15 @@ const links = [
     label: "Board",
   },
   {
+    path: "/dashboard/repo",
+    icon: (isActive: boolean) => (
+      <MdExplore
+        className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}
+      />
+    ),
+    label: "Explore",
+  },
+  {
     path: "/dashboard/people",
     icon: (isActive: boolean) => (
       <FaUsers
@@ -47,15 +70,6 @@ const links = [
     label: "People",
   },
   {
-    path: "/dashboard/me",
-    icon: (isActive: boolean) => (
-      <CgUserlane
-        className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}
-      />
-    ),
-    label: "Me",
-  },
-  {
     path: "/dashboard/ama",
     icon: (isActive: boolean) => (
       <LuMessagesSquare
@@ -63,24 +77,6 @@ const links = [
       />
     ),
     label: "AMA",
-  },
-  {
-    path: "/dashboard/repo",
-    icon: (isActive: boolean) => (
-      <FaGoogleScholar
-        className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}
-      />
-    ),
-    label: "REPO",
-  },
-  {
-    path: "/dashboard/more",
-    icon: (isActive: boolean) => (
-      <MdChatBubble
-        className={`text-xl mr-2 ${isActive ? "text-blue-500" : "text-white"}`}
-      />
-    ),
-    label: "Chats",
   },
 ];
 

@@ -24,7 +24,7 @@ interface Project {
   dueDate: string;
   admins: string[];
   members: string[];
-  onClick?: () => void;
+  userRole: ProjectRole; // Added userRole to the Project interface
 }
 
 type ProjectRole = "admin" | "member" | "none";
@@ -56,18 +56,21 @@ const getGradientFromInitials = (name: string) => {
   return `linear-gradient(to bottom right, ${colors[index][0]}, ${colors[index][1]})`;
 };
 
-const getUserRole = (project: Project, uid: string): ProjectRole => {
+const getUserRole = (
+  project: Omit<Project, "userRole">,
+  uid: string
+): ProjectRole => {
+  if (!uid) return "none";
   if (project.admins?.includes(uid)) return "admin";
   if (project.members?.includes(uid)) return "member";
-  return "member";
+  return "none";
 };
 
 const SkeletonCard = () => (
-  <Card className="w-72 h-36 bg-gray-400 animate-pulse rounded-lg"></Card>
+  <Card className="w-72 h-40 bg-gray-400 animate-pulse rounded-lg"></Card>
 );
 
 interface ProjectCardProps extends Project {
-  userRole: ProjectRole;
   onEdit: (id: string) => void;
 }
 
@@ -143,31 +146,45 @@ export default function Projects() {
   const { replace } = useRouter();
 
   useEffect(() => {
+    if (!user?.uid) return;
+
     const projectsRef = collection(FIREBASE_DB, "projects");
     const q = query(projectsRef);
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const projects: Project[] = snapshot.docs.map((doc) => {
+      const projects: Project[] = [];
+
+      snapshot.docs.forEach((doc) => {
         const data = doc.data();
-        return {
-          id: doc.id,
-          title: data.title || "Untitled",
-          status: data.status || "Ongoing",
-          dueDate: data.dueDate?.toDate().toLocaleDateString() || "N/A",
-          admins: data.admins || [],
-          members: data.members || [],
-        };
+        const userId = user?.uid || "";
+        const role = getUserRole(
+          {
+            id: doc.id,
+            title: data.title || "Untitled",
+            status: data.status || "Ongoing",
+            dueDate: data.dueDate?.toDate().toLocaleDateString() || "N/A",
+            admins: data.admins || [],
+            members: data.members || [],
+          },
+          userId
+        );
+
+        // Only include projects where user has a role
+        if (role !== "none") {
+          projects.push({
+            id: doc.id,
+            title: data.title || "Untitled",
+            status: data.status || "Ongoing",
+            dueDate: data.dueDate?.toDate().toLocaleDateString() || "N/A",
+            admins: data.admins || [],
+            members: data.members || [],
+            userRole: role, // Include user's role in the project data
+          });
+        }
       });
 
-      // Filter projects where user is either admin or member
-      const userProjects = projects.filter(
-        (p) => getUserRole(p, user?.uid || "") !== "none"
-      );
-
-      setOngoingProjects(userProjects.filter((p) => p.status !== "Completed"));
-      setCompletedProjects(
-        userProjects.filter((p) => p.status === "Completed")
-      );
+      setOngoingProjects(projects.filter((p) => p.status !== "Completed"));
+      setCompletedProjects(projects.filter((p) => p.status === "Completed"));
       setLoading(false);
     });
 
@@ -206,12 +223,21 @@ export default function Projects() {
                   <ProjectCard
                     key={project.id}
                     {...project}
-                    userRole={getUserRole(project, user?.uid || "")}
                     onEdit={handleEditProject}
                   />
                 ))
               ) : (
-                <p className="text-gray-400">No ongoing projects</p>
+                <>
+                  <Card
+                    onClick={handleCreateProject}
+                    className="w-72 h-40 cursor-pointer transition-transform transform hover:scale-105 bg-cover border-none shadow-md relative overflow-hidden justify-center items-center flex flex-col rounded-lg bg-gradient-to-r from-[#10B981] to-[#065F46]"
+                  >
+                    <FaPlus className="text-2xl" />
+                    <span className="text-lg font-semibold ml-2">
+                      Create New Project
+                    </span>
+                  </Card>
+                </>
               )}
             </div>
           </CollapsibleContent>
@@ -230,7 +256,6 @@ export default function Projects() {
                   <ProjectCard
                     key={project.id}
                     {...project}
-                    userRole={getUserRole(project, user?.uid || "")}
                     onEdit={handleEditProject}
                   />
                 ))

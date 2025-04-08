@@ -237,7 +237,7 @@ const PeopleCards = () => {
                   }}
                 />
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 text-white hover:bg-blue-700"
                   onClick={() => {
                     handleSearch;
                   }}
@@ -329,11 +329,10 @@ const PeopleCards = () => {
                       className="flex-1 bg-blue-600 border-blue-600 hover:bg-blue-700 text-white"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Connect logic here
+                        router.push(`/dashboard/people/${user.id}`);
                       }}
                     >
-                      <UserPlus size={16} className="mr-2" />
-                      Connect
+                      View Profile
                     </Button>
                   </CardFooter>
                 </Card>

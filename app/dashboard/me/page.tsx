@@ -23,8 +23,6 @@ import { useAuth } from "@/app/auth/AuthContext";
 import { usePageHeading } from "@/app/auth/PageHeadingContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   FiExternalLink,
@@ -39,7 +37,7 @@ import {
   FaGraduationCap,
   FaChalkboardTeacher,
 } from "react-icons/fa";
-import { MdWork, MdScience, MdBusinessCenter } from "react-icons/md";
+import { MdScience, MdBusinessCenter } from "react-icons/md";
 import ProfileStats from "./Stats";
 
 interface UserProfile {
@@ -649,13 +647,16 @@ const UserProfileComponent = () => {
                     <CardContent className="flex flex-col items-center justify-center p-8 text-center">
                       <FaChalkboardTeacher className="text-4xl text-gray-400 mb-4" />
                       <h3 className="text-xl font-medium mb-2">
-                        No Academic Projects Yet
+                        No Projects Yet
                       </h3>
                       <p className="text-gray-400 mb-4">
                         Add your academic projects to showcase your work and
                         collaborations
                       </p>
-                      <Button className="gap-2">
+                      <Button
+                        className="gap-2"
+                        onClick={() => setIsModal2Open(true)}
+                      >
                         <FaChalkboardTeacher size={18} /> Add Your First Project
                       </Button>
                     </CardContent>
@@ -852,7 +853,8 @@ const UserProfileComponent = () => {
                           <h3 className="font-medium mb-3">Appearance</h3>
                           <div className="flex gap-4">
                             <button
-                              className={`p-2 rounded-md border ${
+                              disabled
+                              className={`p-2 rounded-md border disabled:opacity-50 ${
                                 userProfile.universitySettings?.theme ===
                                 "light"
                                   ? "border-primary bg-primary/10"

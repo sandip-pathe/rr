@@ -1,10 +1,7 @@
 "use client";
 
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import Modal from "@/components/Modal";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { FiEdit2, FiSave, FiX } from "react-icons/fi";

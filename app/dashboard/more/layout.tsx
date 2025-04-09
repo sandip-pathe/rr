@@ -16,13 +16,15 @@ import {
   query,
   where,
   orderBy,
+  onSnapshot,
+  Unsubscribe,
 } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import Link from "next/link";
 
 interface ChatListItem {
   id: string;
-  participants: string[];
+  participants: Record<string, boolean>;
   lastMessage?: string;
   lastMessageAt?: Date;
   lastMessageSender?: string;
@@ -53,11 +55,12 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const pathname = usePathname();
   const db = FIREBASE_DB;
+  const chatsUnsubscribeRef = useRef<Unsubscribe | null>(null);
 
   useEffect(() => {
     if (!user?.uid) return;
 
-    const fetchData = async () => {
+    const fetchInitialData = async () => {
       try {
         // Fetch all users (excluding current user)
         const usersQuery = query(
@@ -71,45 +74,61 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
         })) as User[];
         setAllUsers(usersData);
 
-        // Fetch chats (using getDocs instead of onSnapshot)
+        // Set up real-time listener for chats
         const chatsQuery = query(
           collection(db, "chats"),
-          where("participants", "array-contains", user.uid),
+          where(`participants.${user.uid}`, "==", true),
           orderBy("lastMessageAt", "desc")
         );
-        const chatsSnapshot = await getDocs(chatsQuery);
 
-        const chatsData = await Promise.all(
-          chatsSnapshot.docs.map(async (chatDoc) => {
-            const data = chatDoc.data();
-            const otherParticipantId = data.participants.find(
-              (id: string) => id !== user.uid
+        // Unsubscribe from previous listener if exists
+        if (chatsUnsubscribeRef.current) {
+          chatsUnsubscribeRef.current();
+        }
+
+        chatsUnsubscribeRef.current = onSnapshot(
+          chatsQuery,
+          async (snapshot) => {
+            const chatsData = await Promise.all(
+              snapshot.docs.map(async (chatDoc) => {
+                const data = chatDoc.data();
+                const participantIds = Object.keys(data.participants);
+                const otherParticipantId = participantIds.find(
+                  (id) => id !== user.uid
+                );
+
+                if (!otherParticipantId) {
+                  return null;
+                }
+
+                const userDoc = await getDoc(
+                  doc(db, "users", otherParticipantId)
+                );
+                const participantData = userDoc.data();
+
+                return {
+                  id: chatDoc.id,
+                  participants: data.participants,
+                  lastMessage: data.lastMessage,
+                  lastMessageAt: data.lastMessageAt?.toDate(),
+                  lastMessageSender: data.lastMessageSender,
+                  otherParticipant: {
+                    id: otherParticipantId,
+                    name:
+                      participantData?.displayName ||
+                      participantData?.name ||
+                      "Unknown",
+                    avatar: participantData?.photoURL,
+                    isOnline: participantData?.isOnline || false,
+                  },
+                };
+              })
             );
 
-            const userDoc = await getDoc(doc(db, "users", otherParticipantId));
-            const participantData = userDoc.data();
-
-            return {
-              id: chatDoc.id,
-              participants: data.participants,
-              lastMessage: data.lastMessage,
-              lastMessageAt: data.lastMessageAt?.toDate(),
-              lastMessageSender: data.lastMessageSender,
-              otherParticipant: {
-                id: otherParticipantId,
-                name:
-                  participantData?.displayName ||
-                  participantData?.name ||
-                  "Unknown",
-                avatar: participantData?.photoURL,
-                isOnline: participantData?.isOnline || false,
-              },
-            };
-          })
+            setChats(chatsData.filter(Boolean) as ChatListItem[]);
+            setLoading(false);
+          }
         );
-
-        setChats(chatsData);
-        setLoading(false);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Failed to load messages. Please try again later.");
@@ -117,7 +136,13 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    fetchData();
+    fetchInitialData();
+
+    return () => {
+      if (chatsUnsubscribeRef.current) {
+        chatsUnsubscribeRef.current();
+      }
+    };
   }, [user?.uid]);
 
   useEffect(() => {
@@ -144,7 +169,7 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
 
   const filteredUsers = allUsers.filter(
     (userItem) =>
-      !chats.some((chat) => chat.participants.includes(userItem.id)) &&
+      !chats.some((chat) => chat.otherParticipant?.id === userItem.id) &&
       (userItem.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         userItem.email?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -200,10 +225,14 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
                     <ul>
                       {filteredChats.map((chat) => (
                         <li key={chat.id} className="px-4">
-                          <Link href={`/dashboard/more/${chat.id}`}>
+                          <Link
+                            href={`/dashboard/more/${chat.otherParticipant?.id}`}
+                          >
                             <div
                               className={`p-2 mb-2 flex flex-row items-center cursor-pointer rounded-sm shadow-sm ${
-                                pathname.includes(chat.id)
+                                pathname.includes(
+                                  chat.otherParticipant?.id || ""
+                                )
                                   ? "bg-[#303030]"
                                   : "bg-[#252525]"
                               } hover:bg-[#303030] transition`}
@@ -224,10 +253,14 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
                                     {chat.otherParticipant?.name}
                                   </h2>
                                   <span className="text-xs text-blue-400 line-clamp-1">
-                                    {chat.lastMessageAt &&
-                                      formatDistanceToNow(chat.lastMessageAt, {
-                                        addSuffix: true,
-                                      })}
+                                    {chat.lastMessageAt
+                                      ? formatDistanceToNow(
+                                          chat.lastMessageAt,
+                                          {
+                                            addSuffix: true,
+                                          }
+                                        )
+                                      : ""}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center">

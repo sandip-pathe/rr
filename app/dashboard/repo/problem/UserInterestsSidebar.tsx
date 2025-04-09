@@ -25,14 +25,14 @@ export default function UserInterestsSidebar() {
         </ul>
       ) : (
         <p className="text-sm text-gray-500">
-          You haven't shown interest in any problems yet
+          You have not shown interest in any problems yet
         </p>
       )}
 
       <div className="mt-4 pt-4 border-t">
         <h3 className="text-sm font-medium">Team Matching</h3>
         <p className="text-xs text-gray-500 mt-1">
-          When multiple users show interest in the same problem, we'll suggest
+          When multiple users show interest in the same problem, we will suggest
           forming a team.
         </p>
       </div>

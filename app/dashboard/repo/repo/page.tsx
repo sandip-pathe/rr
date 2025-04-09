@@ -34,9 +34,6 @@ const SearchRepo = () => {
   const [sortCriteria, setSortCriteria] = useState<string>("relevance");
   const [filterType, setFilterType] = useState<string>("All");
   const [researchPapers, setResearchPapers] = useState<ResearchItem[]>([]);
-  const [heading, setHeading] = useState<string>("");
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     const fetchWorks = async () => {
@@ -101,29 +98,10 @@ const SearchRepo = () => {
     return (titleMatch || authorMatch || abstractMatch) && typeMatch;
   });
 
-  useEffect(() => {
-    if (!headingRef.current) return;
-    setHeading(headingRef.current.innerText);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(headingRef.current);
-    return () => {
-      if (headingRef.current) observer.unobserve(headingRef.current);
-    };
-  }, [setHeading, setIsVisible]);
-
   return (
     <Layout>
       <DiscoverTabs />
-      <h1
-        ref={headingRef}
-        className="text-2xl font-semibold text-gray-300 ml-10 mt-5"
-      >
+      <h1 className="text-2xl font-semibold text-gray-300 ml-10 mt-5">
         Research Repository
       </h1>
       <div className="flex flex-row">

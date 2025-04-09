@@ -1,52 +1,36 @@
 "use client";
 
 import Layout from "@/components/Layout";
-import { useEffect, useRef, useState } from "react";
+import { PropsWithChildren, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNotifications, markNotificationAsRead } from "./UseNotifications";
 import { useAuth } from "@/app/auth/AuthContext";
 import { LuMessagesSquare, LuCheck, LuChevronRight } from "react-icons/lu";
-import { usePageHeading } from "@/app/auth/PageHeadingContext";
 import { Notification } from "@/types/Notification";
 import { formatDistanceToNow } from "date-fns";
 import { markAllNotificationsAsRead } from "./UseNotifications";
 
-const MsgLayout = ({ children }: { children: React.ReactNode }) => {
+const MsgLayout = ({
+  children,
+  modal,
+}: PropsWithChildren<{
+  modal: React.ReactNode;
+}>) => {
   const { user } = useAuth();
-  const notifications = useNotifications(user?.uid!);
+  const notifications = useNotifications(user?.uid ?? "");
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
   const router = useRouter();
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const { setHeading, setIsVisible } = usePageHeading();
   const [isLoading, setIsLoading] = useState(false);
 
   // Track unread notifications count
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  // Set up intersection observer for the heading
-  useEffect(() => {
-    if (!headingRef.current) return;
-    setHeading(headingRef.current.innerText);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(headingRef.current);
-    return () => {
-      if (headingRef.current) observer.unobserve(headingRef.current);
-    };
-  }, [setHeading, setIsVisible]);
-
-  // Auto-select the first notification if none is selected
   useEffect(() => {
     if (notifications.length > 0 && !selectedNotification) {
       setSelectedNotification(notifications[0]);
     }
-  }, [notifications]);
+  }, [notifications, selectedNotification]);
 
   const handleNotificationClick = async (notification: Notification) => {
     setSelectedNotification(notification);
@@ -65,7 +49,8 @@ const MsgLayout = ({ children }: { children: React.ReactNode }) => {
 
   const handleMarkAllAsRead = async () => {
     setIsLoading(true);
-    await markAllNotificationsAsRead(user?.uid!);
+    if (!user?.uid) return;
+    await markAllNotificationsAsRead(user.uid);
     setIsLoading(false);
   };
 
@@ -75,10 +60,7 @@ const MsgLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Notifications sidebar */}
         <div className="w-1/3 p-4 bg-[#1a1b1b] border-r border-gray-800 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
-            <h1
-              ref={headingRef}
-              className="text-2xl font-semibold text-gray-300"
-            >
+            <h1 className="text-2xl font-semibold text-gray-300">
               Activities{" "}
               {unreadCount > 0 && (
                 <span className="ml-2 bg-blue-500 text-white text-sm px-2 py-1 rounded-full">

@@ -16,6 +16,7 @@ import { useAuth } from "@/app/auth/AuthContext";
 import { IoClose } from "react-icons/io5";
 import { FiUpload } from "react-icons/fi";
 import { Switch } from "@headlessui/react";
+import Image from "next/image";
 
 export enum FormFieldType {
   INPUT = "input",
@@ -153,7 +154,7 @@ const AskQuestionsPage = ({ onClick }: { onClick: () => void }) => {
                 <div className="flex flex-wrap gap-3">
                   {uploadedImages.map((file, idx) => (
                     <div key={idx} className="relative group">
-                      <img
+                      <Image
                         src={URL.createObjectURL(file)}
                         alt={`Preview ${idx + 1}`}
                         className="w-24 h-24 object-cover rounded-md border border-gray-700"

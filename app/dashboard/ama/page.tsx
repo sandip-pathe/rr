@@ -65,26 +65,8 @@ const AMA = () => {
   );
   const observer = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const { setHeading, setIsVisible } = usePageHeading();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { copyToClipboard } = useClipboard();
-
-  useEffect(() => {
-    if (!headingRef.current) return;
-    setHeading(headingRef.current.innerText);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(headingRef.current);
-    return () => {
-      if (headingRef.current) observer.unobserve(headingRef.current);
-    };
-  }, [setHeading, setIsVisible]);
 
   const fetchQuestions = useCallback(
     async (filter: "recent" | "popular" = "recent") => {
@@ -169,7 +151,7 @@ const AMA = () => {
       });
       if (node) observer.current.observe(node);
     },
-    [initialLoading, loadingMore, hasMore]
+    [initialLoading, loadingMore, hasMore, fetchMoreQuestions]
   );
 
   const handleOpenQuestion = (id: string) => {
@@ -210,7 +192,7 @@ const AMA = () => {
         {/* Main Content */}
         <div className="w-full lg:w-2/3">
           <div className="flex justify-between items-center mb-6">
-            <h1 ref={headingRef} className="text-2xl font-bold text-gray-100">
+            <h1 className="text-2xl font-bold text-gray-100">
               Ask Me Anything
             </h1>
             <Button

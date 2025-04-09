@@ -45,8 +45,6 @@ interface User {
 }
 
 const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const { setHeading, setIsVisible } = usePageHeading();
   const { user } = useAuth();
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -143,23 +141,7 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
         chatsUnsubscribeRef.current();
       }
     };
-  }, [user?.uid]);
-
-  useEffect(() => {
-    if (!headingRef.current) return;
-    setHeading(headingRef.current.innerText);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(headingRef.current);
-    return () => {
-      if (headingRef.current) observer.unobserve(headingRef.current);
-    };
-  }, [setHeading, setIsVisible]);
+  }, [user?.uid, db]);
 
   const filteredChats = chats.filter((chat) =>
     chat.otherParticipant?.name
@@ -190,9 +172,7 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="hidden md:block md:w-1/3 bg-[#1a1b1b] border-x border-gray-500 flex-col">
           <div className="p-4 border-b border-gray-700 sticky top-0 z-10 bg-[#1a1b1b]">
             <div className="flex flex-row items-center justify-between">
-              <h1 ref={headingRef} className="text-2xl font-bold text-gray-300">
-                Chats
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-300">Chats</h1>
               <MdAddComment className="text-3xl text-gray-300 cursor-pointer" />
             </div>
 

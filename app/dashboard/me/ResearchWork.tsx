@@ -95,8 +95,8 @@ const ResearchWork: React.FC<ResearchWorkProps> = ({ userId }) => {
                 No Research Work Found
               </h3>
               <p className="text-gray-400 mb-4">
-                You haven't added any research work yet. Click the button below
-                to add your first project.
+                Not added any research work yet. Click the button below to add
+                your first project.
               </p>
               <Button className="gap-2">
                 <MdScience size={18} /> Add Your first Research Work

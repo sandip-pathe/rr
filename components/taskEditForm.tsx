@@ -92,12 +92,14 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
       (member, index, self) =>
         index === self.findIndex((m) => m.id === member.id)
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectMembers, projectAdmins]);
 
   const availableMembers = useMemo(() => {
     return allProjectMembers.filter(
       (member) => !assignedUsers.some((assigned) => assigned.id === member.id)
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allProjectMembers, assignedUsers]);
 
   const initialDueDate = React.useMemo(
@@ -120,6 +122,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
       });
       setAssignedUsers(initialAssignedUsers);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const closeModal = () => {

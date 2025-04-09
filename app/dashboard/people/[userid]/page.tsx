@@ -80,7 +80,6 @@ const PublicUserProfile = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [isFollowing, setIsFollowing] = useState(false);
-  const headingRef = useRef<HTMLHeadingElement>(null);
   const { userid: userId } = useParams();
 
   useEffect(() => {
@@ -182,7 +181,7 @@ const PublicUserProfile = () => {
 
           <div className="flex-grow">
             <div className="flex flex-wrap gap-4 items-center">
-              <h1 ref={headingRef} className="text-2xl md:text-3xl font-bold">
+              <h1 className="text-2xl md:text-3xl font-bold">
                 {userProfile.name || "Unknown User"}
               </h1>
               {userProfile.role && (
@@ -607,7 +606,7 @@ const PublicUserProfile = () => {
                         No Academic Projects
                       </h3>
                       <p className="text-gray-400">
-                        This user hasn't added any academic projects yet
+                        This user has not added any academic projects yet
                       </p>
                     </CardContent>
                   </Card>
@@ -684,7 +683,7 @@ const PublicUserProfile = () => {
                         No Startup Ventures
                       </h3>
                       <p className="text-gray-400">
-                        This user hasn't added any startup ventures yet
+                        This user has not added any startup ventures yet
                       </p>
                     </CardContent>
                   </Card>

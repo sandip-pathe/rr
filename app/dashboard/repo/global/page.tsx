@@ -297,8 +297,8 @@ const InnovationSearch: NextPage = () => {
                 </button>
               </div>
               <div className="mt-3 text-sm text-gray-400">
-                Try: "Find recent mental health tech projects", "What's trending
-                in AI on GitHub?"
+                Try: Find recent mental health tech projects, What Is trending
+                in AI on GitHub?
               </div>
             </form>
           </div>

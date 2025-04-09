@@ -239,7 +239,7 @@ const PeopleCards = () => {
                 <Button
                   className="bg-blue-600 text-white hover:bg-blue-700"
                   onClick={() => {
-                    handleSearch;
+                    handleSearch();
                   }}
                 >
                   Search
@@ -317,7 +317,7 @@ const PeopleCards = () => {
                       className="flex-1 bg-gray-700 border-gray-600 hover:bg-gray-600 text-white"
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/chat/${user.id}`);
+                        router.push(`/dashboard/more/${user.id}`);
                       }}
                     >
                       <MessageCircle size={16} className="mr-2" />

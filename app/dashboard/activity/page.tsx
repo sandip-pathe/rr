@@ -7,7 +7,7 @@ const DefaultPage = () => {
   return (
     <div className="h-full flex justify-center items-center">
       <p className="text-gray-500 text-xl">
-        Select a conversation to start chatting
+        Here you will see the dashboard and activities
       </p>
       <NotificationTester />
     </div>

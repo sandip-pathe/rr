@@ -105,24 +105,6 @@ const UserProfileComponent = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const { setHeading, setIsVisible } = usePageHeading();
-
-  useEffect(() => {
-    if (!headingRef.current) return;
-    setHeading(headingRef.current.innerText);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(headingRef.current);
-    return () => {
-      if (headingRef.current) observer.unobserve(headingRef.current);
-    };
-  }, [setHeading, setIsVisible]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -186,7 +168,7 @@ const UserProfileComponent = () => {
 
           <div className="flex-grow">
             <div className="flex flex-wrap gap-4 items-center">
-              <h1 ref={headingRef} className="text-2xl md:text-3xl font-bold">
+              <h1 className="text-2xl md:text-3xl font-bold">
                 {userProfile.name}
               </h1>
               {userProfile.role && (
@@ -438,7 +420,7 @@ const UserProfileComponent = () => {
                               </div>
                               <div>
                                 <p>
-                                  Published new research paper: "AI in Medicine"
+                                  Published new research paper AI in Medicine
                                 </p>
                                 <p className="text-sm text-gray-400">
                                   3 days ago
@@ -451,8 +433,7 @@ const UserProfileComponent = () => {
                               </div>
                               <div>
                                 <p>
-                                  Joined new project: "Quantum Computing
-                                  Research"
+                                  Joined new project: Quantum Computing Research
                                 </p>
                                 <p className="text-sm text-gray-400">
                                   1 week ago

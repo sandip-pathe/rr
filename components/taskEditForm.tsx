@@ -21,7 +21,6 @@ import { Loader2, X, User, Users, Eye } from "lucide-react";
 import CustomFormField from "@/components/CustomFormField";
 import { Form } from "@/components/ui/form";
 import { FormFieldType } from "@/enum/FormFieldTypes";
-import { isValid } from "date-fns";
 import { useAuth } from "@/app/auth/AuthContext";
 
 interface TaskFormValues {
@@ -83,7 +82,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
   const convertDueDate = (d: string | Date | undefined): Date | undefined => {
     if (!d) return undefined;
     const date = d instanceof Date ? d : new Date(d);
-    return isValid(date) ? date : undefined;
+    return date && !isNaN(date.getTime()) ? date : undefined;
   };
 
   const form = useForm<TaskFormValues>({

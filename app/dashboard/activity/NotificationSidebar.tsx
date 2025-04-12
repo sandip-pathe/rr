@@ -10,9 +10,9 @@ import {
 import { MdChatBubble, MdDashboard } from "react-icons/md";
 import { FcWorkflow } from "react-icons/fc";
 import { Notification } from "@/types/Notification";
-import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { FaChevronCircleRight } from "react-icons/fa";
+import { getLastSeenText } from "@/components/DateFormat";
 
 interface NotificationSidebarProps {
   notifications: Notification[];
@@ -146,9 +146,7 @@ export default function NotificationSidebar({
                   <div className="mt-1 text-xs text-gray-400 space-y-1">
                     <div>
                       {notification.createdAt?.toDate()
-                        ? formatDistanceToNow(notification.createdAt.toDate(), {
-                            addSuffix: true,
-                          })
+                        ? getLastSeenText(notification.createdAt)
                         : "Just now"}
                     </div>
                     {notification.type === "message" && (

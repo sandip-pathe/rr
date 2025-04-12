@@ -2,13 +2,13 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
-  distDir: "functions/.next",
+  output: "standalone", // Required for SSR on Netlify
+  distDir: ".next", // Default, optional to specify
   eslint: {
-    ignoreDuringBuilds: true, // Skip linting during build
+    ignoreDuringBuilds: true, // Optional: good for fast deploys
   },
   typescript: {
-    ignoreBuildErrors: true, // Skip TypeScript errors during build
+    ignoreBuildErrors: true, // ⚠️ Only use in dev if you're fixing TS later
   },
 };
 

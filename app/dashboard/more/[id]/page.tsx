@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/app/auth/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -312,7 +311,7 @@ const MessageBubble = ({
       <p>{message.content}</p>
       <div className="flex items-center justify-end mt-1 space-x-1">
         <span className="text-xs text-gray-300">
-          {formatDistanceToNow(message.timestamp, { addSuffix: true })}
+          {getLastSeenText(message.timestamp)}
         </span>
         {isCurrentUser && (
           <span className="text-xs">

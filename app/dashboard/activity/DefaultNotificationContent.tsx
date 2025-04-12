@@ -1,7 +1,7 @@
 // components/DefaultNotificationContent.tsx
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
+import { getLastSeenText } from "@/components/DateFormat";
 import NotificationIcon from "./NotificationIcon";
 import { Notification } from "@/types/Notification";
 
@@ -45,9 +45,7 @@ export default function DefaultNotificationContent({
               <p className="text-gray-400">Received</p>
               <p className="text-gray-200">
                 {notification.createdAt?.toDate()
-                  ? formatDistanceToNow(notification.createdAt.toDate(), {
-                      addSuffix: true,
-                    })
+                  ? getLastSeenText(notification.createdAt)
                   : "Recently"}
               </p>
             </div>

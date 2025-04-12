@@ -14,8 +14,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useAuth } from "@/app/auth/AuthContext";
-import { FormFieldType } from "@/enum/FormFieldTypes";
 import { IoClose } from "react-icons/io5";
+import { FormFieldType } from "@/enum/FormFieldTypes";
 
 interface EditUserFormData {
   name: string;

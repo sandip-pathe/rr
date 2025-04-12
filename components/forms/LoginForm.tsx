@@ -12,10 +12,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { FIREBASE_AUTH } from "@/FirebaseConfig";
 import { LoginFormValidation } from "@/lib/Validation";
 import Link from "next/link";
-
-export enum FormFieldType {
-  INPUT = "input",
-}
+import { FormFieldType } from "@/enum/FormFieldTypes";
 
 const LoginPage = () => {
   const router = useRouter();

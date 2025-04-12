@@ -11,7 +11,7 @@ export const NotificationBadge = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const count = notifications.filter((n) => !n.isRead).length;
+    const count = notifications.notifications.filter((n) => !n.isRead).length;
     setUnreadCount(count);
   }, [notifications]);
 

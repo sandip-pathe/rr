@@ -51,3 +51,6 @@ firebase.json
 firebaserc
 
 functions/.next
+
+dev.env.var.ts
+dev.env.var

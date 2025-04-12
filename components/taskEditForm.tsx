@@ -17,11 +17,12 @@ import { useSearchParams } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, X, User, Users } from "lucide-react";
+import { Loader2, X, User, Users, Eye } from "lucide-react";
 import CustomFormField from "@/components/CustomFormField";
 import { Form } from "@/components/ui/form";
 import { FormFieldType } from "@/enum/FormFieldTypes";
 import { isValid } from "date-fns";
+import { useAuth } from "@/app/auth/AuthContext";
 
 interface TaskFormValues {
   title: string;
@@ -48,11 +49,18 @@ interface TaskEditModalProps {
     dueDate?: string | Date;
     stageId?: string | null;
     assignedUsers?: ProjectMember[];
+    createdBy?: {
+      id: string;
+      name: string;
+    };
+    createdAt?: string;
   };
   isOpen: boolean;
   onClose: () => void;
   projectMembers: ProjectMember[];
   projectAdmins: ProjectMember[];
+  role: string;
+  viewOnly?: boolean;
 }
 
 const TaskEditModal: React.FC<TaskEditModalProps> = ({
@@ -62,11 +70,13 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
   onClose,
   projectMembers = [],
   projectAdmins = [],
+  role,
+  viewOnly = false,
 }) => {
   const searchParams = useSearchParams();
   const urlStageId = searchParams.get("columnId");
   const projectId = searchParams.get("projectId");
-
+  const { user, name } = useAuth();
   const [assignedUsers, setAssignedUsers] = useState<ProjectMember[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -92,14 +102,12 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
       (member, index, self) =>
         index === self.findIndex((m) => m.id === member.id)
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectMembers, projectAdmins]);
 
   const availableMembers = useMemo(() => {
     return allProjectMembers.filter(
       (member) => !assignedUsers.some((assigned) => assigned.id === member.id)
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allProjectMembers, assignedUsers]);
 
   const initialDueDate = React.useMemo(
@@ -109,6 +117,8 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      console.log("TaskEditModal opened with taskId:", urlStageId);
+      console.log("Initial Data:", projectId);
       const initialAssignedUsers = Array.isArray(initialData?.assignedUsers)
         ? initialData.assignedUsers
         : [];
@@ -122,7 +132,6 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
       });
       setAssignedUsers(initialAssignedUsers);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const closeModal = () => {
@@ -145,6 +154,14 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
         ...data,
         assignedUsers,
         dueDate: data.dueDate?.toISOString() || null,
+        ...(taskId === "new" && {
+          createdAt: new Date().toISOString(),
+          stageId: urlStageId || null,
+          createdBy: {
+            id: user?.uid,
+            name: name,
+          },
+        }),
       };
 
       if (taskId === "new") {
@@ -165,6 +182,85 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
       setIsSaving(false);
     }
   };
+
+  const renderCreatedBy = () => {
+    if (!initialData?.createdBy) return null;
+
+    return (
+      <div className="text-xs text-muted-foreground mt-4">
+        <span className="font-medium">Created By:</span>{" "}
+        {initialData.createdBy.name}
+        <span className="font-medium">, On:</span> {initialData.createdAt}
+      </div>
+    );
+  };
+
+  if (viewOnly) {
+    return (
+      <CustomModal isOpen={isOpen} onClose={closeModal}>
+        <div className="space-y-6 p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold">
+              {initialData?.title || "Task Details"}
+            </h3>
+            <Eye className="h-5 w-5 text-muted-foreground" />
+          </div>
+
+          <div>
+            <Label className="block mb-2 font-medium">Description</Label>
+            <p className="text-sm text-muted-foreground">
+              {initialData?.description || "No description provided"}
+            </p>
+          </div>
+
+          {initialDueDate && (
+            <div>
+              <Label className="block mb-2 font-medium">Due Date</Label>
+              <p className="text-sm text-muted-foreground">
+                {initialDueDate.toLocaleDateString()}
+              </p>
+            </div>
+          )}
+
+          {assignedUsers.length > 0 && (
+            <div>
+              <Label className="block mb-3 font-medium">
+                Assigned Team Members
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {assignedUsers.map((user) => (
+                  <Badge
+                    key={user.id}
+                    variant="secondary"
+                    className="flex items-center gap-2 py-1.5 px-3 rounded-full"
+                  >
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage />
+                      <AvatarFallback>
+                        {user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>{user.name}</span>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeModal}
+              className="px-6"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+        {renderCreatedBy()}
+      </CustomModal>
+    );
+  }
 
   return (
     <CustomModal isOpen={isOpen} onClose={closeModal}>
@@ -237,118 +333,129 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
                           </AvatarFallback>
                         </Avatar>
                         <span>{user.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleAssignUser(user, false)}
-                          className="ml-1 rounded-full p-0.5 hover:bg-muted transition-colors"
-                          aria-label={`Unassign ${user.name}`}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                        {!viewOnly && (
+                          <button
+                            type="button"
+                            onClick={() => handleAssignUser(user, false)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted transition-colors"
+                            aria-label={`Unassign ${user.name}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
                       </Badge>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Available Members */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Available Members
-                  </span>
-                </div>
-
-                {availableMembers.length === 0 ? (
-                  <div className="text-center py-6 border rounded-lg bg-muted/50">
-                    <p className="text-sm text-muted-foreground">
-                      {allProjectMembers.length === 0
-                        ? "No team members available"
-                        : "All team members are already assigned"}
-                    </p>
+              {/* Available Members - Only show if not viewOnly */}
+              {!viewOnly && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Available Members
+                    </span>
                   </div>
-                ) : (
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto p-1">
-                    {availableMembers.map((user) => (
-                      <div
-                        key={user.id}
-                        onClick={() => handleAssignUser(user, true)}
-                        className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage />
-                            <AvatarFallback>
-                              {user.name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
+
+                  {availableMembers.length === 0 ? (
+                    <div className="text-center py-6 border rounded-lg bg-muted/50">
+                      <p className="text-sm text-muted-foreground">
+                        {allProjectMembers.length === 0
+                          ? "No team members available"
+                          : "All team members are already assigned"}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto p-1">
+                      {availableMembers.map((user) => (
+                        <div
+                          key={user.id}
+                          onClick={() => handleAssignUser(user, true)}
+                          className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage />
+                              <AvatarFallback>
+                                {user.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{user.name}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Action Buttons - Fixed at bottom */}
-          <div className="sticky bottom-[-6] bg-black border-t p-4">
-            <div className="flex justify-end gap-3">
-              {taskId !== "new" && (
+          {!viewOnly && (
+            <div className="sticky bottom-[-6] bg-black border-t p-4">
+              <div className="flex justify-end gap-3">
+                {taskId !== "new" &&
+                  (role == "admin" ||
+                    initialData.createdBy?.id == user?.uid) && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={async () => {
+                        if (
+                          confirm("Are you sure you want to delete this task?")
+                        ) {
+                          try {
+                            await deleteDoc(
+                              doc(
+                                FIREBASE_DB,
+                                "projects",
+                                projectId as string,
+                                "tasks",
+                                taskId
+                              )
+                            );
+                            closeModal();
+                          } catch (error) {
+                            console.error("Failed to delete task:", error);
+                          }
+                        }
+                      }}
+                      className="px-6"
+                    >
+                      Delete Task
+                    </Button>
+                  )}
                 <Button
                   type="button"
-                  variant="destructive"
-                  onClick={async () => {
-                    if (confirm("Are you sure you want to delete this task?")) {
-                      try {
-                        await deleteDoc(
-                          doc(
-                            FIREBASE_DB,
-                            "projects",
-                            projectId as string,
-                            "tasks",
-                            taskId
-                          )
-                        );
-                        closeModal();
-                      } catch (error) {
-                        console.error("Failed to delete task:", error);
-                      }
-                    }
-                  }}
+                  variant="outline"
+                  onClick={closeModal}
                   className="px-6"
                 >
-                  Delete Task
+                  Cancel
                 </Button>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeModal}
-                className="px-6"
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSaving} className="px-6">
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : taskId === "new" ? (
-                  "Create Task"
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
+                <Button type="submit" disabled={isSaving} className="px-6">
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : taskId === "new" ? (
+                    "Create Task"
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </form>
       </Form>
+      {taskId !== "new" && renderCreatedBy()}
     </CustomModal>
   );
 };

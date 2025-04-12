@@ -4,8 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Layout from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDistanceToNow } from "date-fns";
-import { usePageHeading } from "@/app/auth/PageHeadingContext";
 import { MdAddComment, MdSearch } from "react-icons/md";
 import { useAuth } from "@/app/auth/AuthContext";
 import {
@@ -15,12 +13,12 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
   onSnapshot,
   Unsubscribe,
 } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import Link from "next/link";
+import { getLastSeenText } from "@/components/DateFormat";
 
 interface ChatListItem {
   id: string;
@@ -36,18 +34,9 @@ interface ChatListItem {
   };
 }
 
-interface User {
-  id: string;
-  name: string;
-  photoURL?: string;
-  email: string;
-  isOnline?: boolean;
-}
-
 const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const [chats, setChats] = useState<ChatListItem[]>([]);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,25 +47,12 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!user?.uid) return;
 
-    const fetchInitialData = async () => {
+    const fetchChats = async () => {
       try {
-        // Fetch all users (excluding current user)
-        const usersQuery = query(
-          collection(db, "users"),
-          where("uid", "!=", user.uid)
-        );
-        const usersSnapshot = await getDocs(usersQuery);
-        const usersData = usersSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as User[];
-        setAllUsers(usersData);
-
-        // Set up real-time listener for chats
+        // Simple query - just get chats where user is participant
         const chatsQuery = query(
           collection(db, "chats"),
-          where(`participants.${user.uid}`, "==", true),
-          orderBy("lastMessageAt", "desc")
+          where(`participants.${user.uid}`, "==", true)
         );
 
         // Unsubscribe from previous listener if exists
@@ -123,18 +99,26 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
               })
             );
 
-            setChats(chatsData.filter(Boolean) as ChatListItem[]);
+            // Filter out null values and sort locally by lastMessageAt
+            const validChats = chatsData.filter(Boolean) as ChatListItem[];
+            validChats.sort((a, b) => {
+              const aTime = a.lastMessageAt?.getTime() || 0;
+              const bTime = b.lastMessageAt?.getTime() || 0;
+              return bTime - aTime; // Descending order
+            });
+
+            setChats(validChats);
             setLoading(false);
           }
         );
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Error fetching chats:", err);
         setError("Failed to load messages. Please try again later.");
         setLoading(false);
       }
     };
 
-    fetchInitialData();
+    fetchChats();
 
     return () => {
       if (chatsUnsubscribeRef.current) {
@@ -147,13 +131,6 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
     chat.otherParticipant?.name
       ?.toLowerCase()
       .includes(searchTerm.toLowerCase())
-  );
-
-  const filteredUsers = allUsers.filter(
-    (userItem) =>
-      !chats.some((chat) => chat.otherParticipant?.id === userItem.id) &&
-      (userItem.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        userItem.email?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (error) {
@@ -182,7 +159,7 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
               <input
                 type="text"
-                placeholder="Search chats or users..."
+                placeholder="Search chats..."
                 className="w-full pl-10 pr-4 py-2 bg-[#252525] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -197,11 +174,8 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
             ) : (
               <>
-                {filteredChats.length > 0 && (
+                {filteredChats.length > 0 ? (
                   <div className="mb-6 pt-2">
-                    <h2 className="text-lg font-semibold text-gray-300 mb-2 px-4">
-                      Your Chats
-                    </h2>
                     <ul>
                       {filteredChats.map((chat) => (
                         <li key={chat.id} className="px-4">
@@ -234,12 +208,7 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
                                   </h2>
                                   <span className="text-xs text-blue-400 line-clamp-1">
                                     {chat.lastMessageAt
-                                      ? formatDistanceToNow(
-                                          chat.lastMessageAt,
-                                          {
-                                            addSuffix: true,
-                                          }
-                                        )
+                                      ? getLastSeenText(chat.lastMessageAt)
                                       : ""}
                                   </span>
                                 </div>
@@ -260,46 +229,9 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
                       ))}
                     </ul>
                   </div>
-                )}
-
-                {(searchTerm || filteredUsers.length > 0) && (
-                  <div className="pt-2">
-                    <h2 className="text-lg font-semibold text-gray-300 mb-2 px-4">
-                      {searchTerm ? "Search Results" : "All Users"}
-                    </h2>
-                    <ul>
-                      {filteredUsers.map((userItem) => (
-                        <li key={userItem.id} className="px-4">
-                          <Link href={`/dashboard/more/${userItem.id}`}>
-                            <div className="p-2 mb-2 flex flex-row items-center cursor-pointer rounded-sm shadow-sm bg-[#252525] hover:bg-[#303030] transition">
-                              <Avatar className="h-10 w-10 m-2">
-                                <AvatarImage src={userItem.photoURL} />
-                                <AvatarFallback>
-                                  {userItem.name?.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col w-full">
-                                <div className="flex flex-row items-center justify-between">
-                                  <h2 className="text-base font-bold max-w-[70%] line-clamp-1">
-                                    {userItem.name}
-                                  </h2>
-                                  <span
-                                    className={`h-2 w-2 rounded-full ${
-                                      userItem.isOnline
-                                        ? "bg-green-500"
-                                        : "bg-gray-500"
-                                    }`}
-                                  ></span>
-                                </div>
-                                <p className="text-sm text-gray-400 line-clamp-1">
-                                  {userItem.email}
-                                </p>
-                              </div>
-                            </div>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                ) : (
+                  <div className="flex justify-center items-center h-64 text-gray-400">
+                    No chats found
                   </div>
                 )}
               </>

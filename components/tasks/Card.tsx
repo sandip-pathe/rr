@@ -31,6 +31,8 @@ interface ProjectCardProps {
   }[];
   onClick?: () => void;
   onDelete?: () => void;
+  onView?: () => void;
+  projectRole?: string;
 }
 
 type DateInfo = {
@@ -91,6 +93,8 @@ const ProjectCard = ({
   assignedUsers = [],
   onClick,
   onDelete,
+  onView,
+  projectRole,
 }: ProjectCardProps) => {
   const dateInfo = useMemo(() => getDateInfo(dueDate), [dueDate]);
 
@@ -99,6 +103,7 @@ const ProjectCard = ({
       <ContextMenu>
         <ContextMenuTrigger>
           <Card
+            onClick={onView}
             key={id}
             className={`${
               dateInfo?.cardColor || "bg-[#434493]"
@@ -160,13 +165,16 @@ const ProjectCard = ({
           </Card>
         </ContextMenuTrigger>
         <ContextMenuContent className="bg-gray-800">
-          <ContextMenuItem
-            onClick={onDelete}
-            className="cursor-pointer hover:text-white-100"
-          >
-            Delete
-          </ContextMenuItem>
+          <ContextMenuItem onClick={onView}>View</ContextMenuItem>
           <ContextMenuItem onClick={onClick}>Edit</ContextMenuItem>
+          {projectRole === "admin" && (
+            <ContextMenuItem
+              onClick={onDelete}
+              className="cursor-pointer hover:text-white-100"
+            >
+              Delete
+            </ContextMenuItem>
+          )}
         </ContextMenuContent>
       </ContextMenu>
     </div>

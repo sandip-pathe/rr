@@ -16,16 +16,16 @@ export const addNotification = async (
 
   switch (type) {
     case "message":
-      link = `/messages/${referenceId}`;
+      link = `/dashboard/more/${referenceId}`;
       break;
     case "project":
-      link = `/projects/${referenceId}`;
+      link = `/dashboard/projects/${referenceId}`;
       break;
     case "task":
-      link = `/projects/${referenceId}/kanban`;
+      link = `/dashboard/projects/${referenceId}`;
       break;
     case "community":
-      link = `/community/${referenceId}`;
+      link = `/dashboard/community/${referenceId}`;
       break;
     default:
       link = "/";

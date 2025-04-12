@@ -2,7 +2,7 @@
 
 import Layout from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +19,6 @@ import { FIREBASE_DB } from "@/FirebaseConfig";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   FiExternalLink,
   FiGithub,
@@ -28,13 +27,9 @@ import {
   FiMail,
   FiGlobe,
 } from "react-icons/fi";
-import {
-  FaUniversity,
-  FaGraduationCap,
-  FaChalkboardTeacher,
-} from "react-icons/fa";
+import { FaGraduationCap, FaChalkboardTeacher } from "react-icons/fa";
 import { MdScience, MdBusinessCenter } from "react-icons/md";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 
 interface UserProfile {
   name: string;

@@ -7,7 +7,6 @@ import SubmitButton from "@/components/SubmitButton";
 import CustomFormField from "@/components/CustomFormField";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { AMAAskFormValidation } from "@/lib/Validation";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { useDropzone } from "react-dropzone";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,11 +16,8 @@ import { IoClose } from "react-icons/io5";
 import { FiUpload } from "react-icons/fi";
 import { Switch } from "@headlessui/react";
 import Image from "next/image";
-
-export enum FormFieldType {
-  INPUT = "input",
-  TEXTAREA = "textarea",
-}
+import { FormFieldType } from "@/enum/FormFieldTypes";
+import { AMAAskFormValidation } from "@/lib/Validation";
 
 const AskQuestionsPage = ({ onClick }: { onClick: () => void }) => {
   const router = useRouter();

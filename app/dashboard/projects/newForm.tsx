@@ -17,13 +17,13 @@ import {
 import { Button } from "@/components/ui/button";
 import CustomFormField from "@/components/CustomFormField";
 import { Form } from "@/components/ui/form";
-import { FormFieldType } from "@/enum/FormFieldTypes";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import DatePickerShadCN from "@/components/DatePicker";
 import { IoClose } from "react-icons/io5";
 import Spiner from "@/components/Spiner";
 import { generateAITasks } from "./helper";
 import { FaDeleteLeft } from "react-icons/fa6";
+import { FormFieldType } from "@/enum/FormFieldTypes";
 
 interface User {
   id: string;

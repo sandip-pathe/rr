@@ -72,7 +72,7 @@ const Header = () => {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              router.push("dashboard/me");
+              router.push("/me");
             }}
           >
             Profile

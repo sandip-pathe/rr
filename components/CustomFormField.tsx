@@ -19,13 +19,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImCross } from "react-icons/im";
-import { marked } from "marked";
 
 interface CustomProps {
   control: Control<any>;

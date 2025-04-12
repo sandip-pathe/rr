@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import Spiner from "@/components/Spiner";
+import { useAuth } from "@/app/auth/AuthContext";
 
 interface User {
   id: string;
@@ -35,6 +36,7 @@ interface User {
 }
 
 const PeopleCards = () => {
+  const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [founders, setFounders] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,10 +70,14 @@ const PeopleCards = () => {
       try {
         const usersRef = collection(FIREBASE_DB, "users");
         const usersSnap = await getDocs(usersRef);
-        const usersList: User[] = usersSnap.docs.map((doc) => ({
-          ...(doc.data() as User),
-          id: doc.id,
-        }));
+        const usersList: User[] = usersSnap.docs
+          .map((doc) => ({
+            ...(doc.data() as User),
+            id: doc.id,
+          }))
+          // Filter out the current user
+          .filter((u) => u.id !== user?.uid);
+
         setUsers(usersList);
         setFilteredUsers(usersList);
         setFounders(usersList.filter((user) => user.role === "founder"));
@@ -79,8 +85,11 @@ const PeopleCards = () => {
         console.error("Error fetching users:", error);
       }
     };
-    fetchUsers();
-  }, []);
+
+    if (user?.uid) {
+      fetchUsers();
+    }
+  }, [user?.uid]);
 
   const handleSearch = () => {
     const lowercasedQuery = searchQuery.toLowerCase();

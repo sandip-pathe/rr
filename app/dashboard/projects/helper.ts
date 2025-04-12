@@ -1,5 +1,4 @@
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const API_URL: string = process.env.API_URL || "https://default-api-url.com";
+import { API_URL, OPENAI_API_KEY } from "@/dev.env.var";
 
 interface ProjectDetails {
   title: string;
@@ -20,6 +19,10 @@ export const generateAITasks = async (
   projectDetails: ProjectDetails,
   number: number
 ): Promise<AISuggestions> => {
+  console.log(OPENAI_API_KEY, API_URL);
+  if (!OPENAI_API_KEY) {
+    throw new Error("OpenAI API key is not set in the environment variables.");
+  }
   try {
     if (!projectDetails.title || !number) {
       throw new Error("Missing required project details or number of tasks.");

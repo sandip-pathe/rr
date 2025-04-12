@@ -6,16 +6,23 @@ import {
   where,
   orderBy,
   onSnapshot,
+  getDocs,
+  writeBatch,
   updateDoc,
   doc,
-  writeBatch,
-  getDocs,
 } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { Notification } from "@/types/Notification";
 
-export const useNotifications = (userId: string): Notification[] => {
+// ✅ Return both notifications and loading state
+export const useNotifications = (
+  userId: string
+): {
+  notifications: Notification[];
+  loading: boolean;
+} => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userId) return;
@@ -26,21 +33,32 @@ export const useNotifications = (userId: string): Notification[] => {
       orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newNotifications = snapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          } as Notification)
-      );
-      setNotifications(newNotifications);
-    });
+    // ✅ Set loading to true before subscribing
+    setLoading(true);
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const newNotifications = snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            } as Notification)
+        );
+        setNotifications(newNotifications);
+        setLoading(false); // ✅ Done loading once we receive data
+      },
+      (error) => {
+        console.error("Error fetching notifications:", error);
+        setLoading(false); // ✅ Fail-safe to stop loading if there's an error
+      }
+    );
 
     return () => unsubscribe();
   }, [userId]);
 
-  return notifications;
+  return { notifications, loading };
 };
 
 export const markNotificationAsRead = async (

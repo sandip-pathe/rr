@@ -30,7 +30,6 @@ import { useAuth } from "@/app/auth/AuthContext";
 import { FaInfo } from "react-icons/fa";
 import Spiner from "@/components/Spiner";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 interface Task {
   id: string;
@@ -39,8 +38,8 @@ interface Task {
   dueDate?: Date;
   completed: boolean;
   stageId: string | null;
-  assignedTo: string;
   assignedUsers: { id: string; name: string }[];
+  createdAt: string;
 }
 
 interface TaskStage {
@@ -87,6 +86,7 @@ const List = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const modalId = searchParams.get("modalId");
   const projectIdFromUrl = searchParams.get("projectId");
+  const [isViewMode, setIsViewMode] = useState(false);
 
   const getUserRole = (project: Project, uid: string | null): ProjectRole => {
     if (!uid) return "none";
@@ -224,24 +224,41 @@ const List = () => {
 
         if (!tasksRef) return;
 
-        // Build the appropriate query based on role
-        const tasksQuery =
-          currentRole === "admin"
-            ? query(tasksRef)
-            : query(tasksRef, where("assignedToIds", "array-contains", userId));
+        // For admins, get all tasks
+        if (currentRole === "admin") {
+          const unsubscribe = onSnapshot(query(tasksRef), (snapshot) => {
+            const fetchedTasks = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as Task[];
 
-        const unsubscribe = onSnapshot(tasksQuery, (snapshot) => {
-          const fetchedTasks = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Task[];
+            setTasks(fetchedTasks);
+            setIsLoading(false);
+          });
+          return unsubscribe;
+        }
+        // For members, filter tasks where assignedUsers contains their ID
+        else if (currentRole === "member") {
+          const unsubscribe = onSnapshot(query(tasksRef), (snapshot) => {
+            const fetchedTasks = snapshot.docs
+              .map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              }))
+              .filter((task) => {
+                // Check if assignedUsers array contains a user with matching ID
+                return (task as Task).assignedUsers?.some(
+                  (user: { id: string }) => user.id === userId
+                );
+              }) as Task[];
 
-          setMemberHasNoTasks(snapshot.empty && currentRole === "member");
-          setTasks(fetchedTasks);
-          setIsLoading(false);
-        });
+            setMemberHasNoTasks(fetchedTasks.length === 0);
+            setTasks(fetchedTasks);
+            setIsLoading(false);
+          });
 
-        return unsubscribe;
+          return unsubscribe;
+        }
       } catch (error) {
         console.error("Error fetching tasks:", error);
         setIsLoading(false);
@@ -340,11 +357,23 @@ const List = () => {
     [selectedProject]
   );
 
+  const handleViewTask = useCallback(
+    (columnId: string, taskId?: string) => {
+      const newParams = new URLSearchParams(window.location.search);
+      newParams.set("columnId", columnId);
+      newParams.set("projectId", selectedProject);
+      newParams.set("modalId", taskId || "new");
+
+      window.history.pushState(null, "", `?${newParams.toString()}`);
+      setIsViewMode(true);
+      setIsModalOpen(true);
+    },
+    [selectedProject]
+  );
+
   const handleDelete = async (taskId: string) => {
     if (!tasksRef) return;
-
     const previousTasks = [...tasks];
-
     try {
       // Optimistic update
       setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
@@ -373,6 +402,7 @@ const List = () => {
     params.delete("columnId");
     window.history.replaceState(null, "", `?${params.toString()}`);
     setIsModalOpen(false);
+    setIsViewMode(false);
     setRefreshTrigger((prev) => prev + 1);
   };
 
@@ -443,12 +473,6 @@ const List = () => {
                 ? "No tasks created yet"
                 : "No tasks assigned to you yet"}
             </p>
-            <Button
-              variant="outline"
-              onClick={() => handleTaskAction(stages[0]?.id || "")}
-            >
-              {projectRole === "admin" ? "Create First Task" : "Request Tasks"}
-            </Button>
           </div>
         ) : (
           <KanbanBoard onDragEnd={handleOnDragEnd}>
@@ -468,9 +492,9 @@ const List = () => {
                       onClick={() =>
                         handleTaskAction(task.stageId || "", task.id)
                       }
-                      onDelete={() =>
-                        projectRole === "admin" && handleDelete(task.id)
-                      }
+                      onView={() => handleViewTask(task.stageId || "", task.id)}
+                      onDelete={() => handleDelete(task.id)}
+                      projectRole={projectRole}
                     />
                   </KanbanItem>
                 ))}
@@ -492,6 +516,8 @@ const List = () => {
           onClose={closeModal}
           projectMembers={projectMembers}
           projectAdmins={projectAdmins}
+          role={projectRole}
+          viewOnly={isViewMode}
         />
       </KanbanBoardContainer>
     </div>

@@ -9,7 +9,7 @@ import SubmitButton from "../SubmitButton";
 import { useState } from "react";
 import { registrationTwoValidation } from "@/lib/Validation";
 import { useRouter } from "next/navigation";
-import { FIREBASE_AUTH, FIREBASE_DB } from "@/FirebaseConfig";
+import { FIREBASE_DB } from "@/FirebaseConfig";
 import { doc, updateDoc } from "firebase/firestore";
 import { FormFieldType } from "../../enum/FormFieldTypes";
 import { Label } from "@/components/ui/label";
@@ -93,7 +93,7 @@ const RegisterForm = () => {
           <RadioGroup
             defaultValue="student"
             className="flex items-center space-x-2 flex-row"
-            onValueChange={(value) => form.setValue("role", value)}
+            onValueChange={(value: string) => form.setValue("role", value)}
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="student" id="student" />

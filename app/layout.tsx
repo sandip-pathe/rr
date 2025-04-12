@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { cn } from "@/lib/utils";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "./auth/AuthContext";
 import { PageHeadingProvider } from "./auth/PageHeadingContext";
+import { cn } from "@/lib/utils";
 
 const fontSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -13,7 +13,7 @@ const fontSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Karma",
+  title: "Research Repo Web App",
   description: "CRM for college",
 };
 
@@ -31,7 +31,6 @@ export default function RootLayout({
         )}
       >
         <div id="modal-root"></div>
-
         <ThemeProvider attribute="class" defaultTheme="dark">
           <AuthProvider>
             <PageHeadingProvider>{children}</PageHeadingProvider>

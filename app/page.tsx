@@ -6,6 +6,7 @@ import LoginForm from "@/components/forms/LoginForm";
 import { useAuth } from "./auth/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { PresenceWrapper } from "@/components/useStatus";
 
 export default function Home() {
   const { user } = useAuth();
@@ -13,7 +14,7 @@ export default function Home() {
 
   useEffect(() => {
     if (user) {
-      router.push("/dashboard");
+      router.push("/dashboard/activity");
     }
   }, [user, router]);
   return (
@@ -21,6 +22,7 @@ export default function Home() {
       <section className="container my-auto">
         <div className="sub-container max-w-[496px]">
           <div className="flex flex-row items-center justify-start gap-4 mb-10">
+            <PresenceWrapper />
             <Image
               src="/assets/icons/Logomark.svg"
               height={1000}

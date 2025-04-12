@@ -1,4 +1,9 @@
-import { API_URL, OPENAI_API_KEY } from "@/dev.env.var";
+const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+console.log("API KEY:", process.env.NEXT_PUBLIC_OPENAI_API_KEY);
+
+if (!OPENAI_API_KEY) throw new Error("API Key not found!");
 
 interface ProjectDetails {
   title: string;

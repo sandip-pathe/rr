@@ -26,11 +26,7 @@ const PeopleProfileCard = (userProfile: UserProfile) => {
       <CardHeader className="border-b border-gray-200">
         <h3 className="font-semibold text-xl">About {userProfile.name}</h3>
       </CardHeader>
-      <CardDescription>
-        <p className="mt-2 text-base text-white pl-6">
-          {userProfile.introduction}
-        </p>
-      </CardDescription>
+      <CardDescription>{userProfile.introduction}</CardDescription>
       <CardContent>
         <h4 className="mt-4 font-semibold text-gray-400">Disciplines</h4>
         <ul className="list-disc list-inside flex flex-wrap gap-2">

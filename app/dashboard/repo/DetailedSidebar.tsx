@@ -1,27 +1,7 @@
 import React from "react";
 import { CgClose } from "react-icons/cg";
 import { BsPersonCircle } from "react-icons/bs";
-
-interface ResearchItem {
-  title: string;
-  type: string;
-  date: string;
-  reads: number;
-  citations: number;
-  authors?: Author[];
-  doi?: string;
-  description: string;
-  publishedIn: string;
-  publisher: string;
-  location: string;
-  edition: string;
-  futureScope: string;
-}
-
-interface Author {
-  id: string;
-  name: string;
-}
+import { ResearchItem } from "@/types/ResearchWork";
 
 interface SidebarProps {
   item: ResearchItem | null;

@@ -13,7 +13,7 @@ import {
 const tabs = [
   {
     name: "Repository",
-    path: "/dashboard/repo/repo",
+    path: "/dashboard/repo",
     icon: <FiFolder className="h-4 w-4" />,
   },
   {

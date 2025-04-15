@@ -10,6 +10,12 @@ export default function MessagesPage() {
           Start a conversation by selecting a person or group from the sidebar.
           or find new people to chat with.
         </p>
+        <Button
+          variant="outline"
+          className="mb-4 bg-white text-gray-900 hover:bg-gray-200 hover:text-gray-900"
+        >
+          <Link href="/dashboard/people">Find new people</Link>
+        </Button>
       </div>
     </div>
   );

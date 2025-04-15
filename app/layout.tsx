@@ -25,13 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={cn(
-          "min-h-screen bg-[#1f1f1e] font-sans antialiased",
-          fontSans.variable
-        )}
+        className={cn("min-h-screen font-sans antialiased", fontSans.variable)}
       >
         <div id="modal-root"></div>
-        <ThemeProvider attribute="class" defaultTheme="dark">
+        <ThemeProvider attribute="class">
           <AuthProvider>
             <PageHeadingProvider>{children}</PageHeadingProvider>
           </AuthProvider>

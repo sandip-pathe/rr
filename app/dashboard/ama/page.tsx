@@ -31,7 +31,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
-import { formatDate } from "./helper";
+import { copyLinkToClipboard, formatDate } from "./helper";
 import Modal from "@/components/Modal";
 import AskQuestionsPage from "./AskQuestionsPage";
 import { toast } from "sonner";
@@ -47,17 +47,47 @@ interface Question {
   authorName: string;
   authorId: string;
   created_at: Date;
-  answers: { content: string; author: string }[];
   isAnonymous?: boolean;
   tags?: string[];
+  replies?: Reply[];
+  repliesCount?: number;
+  views?: number;
+  lastReplyDate?: Date;
+}
+
+interface Reply {
+  id: string;
+  created_at: Date;
 }
 
 type FilterType = "recent" | "popular" | "saved";
 
 const PAGE_SIZE = 5;
 
+const calculateEngagementScore = (question: Question): number => {
+  const replyCount = question.repliesCount || question.replies?.length || 0;
+  const viewCount = question.views || 1; // Avoid division by zero
+  const daysSinceCreation = Math.max(
+    1,
+    Math.floor(
+      (new Date().getTime() - question.created_at.getTime()) /
+        (1000 * 60 * 60 * 24)
+    )
+  );
+
+  // Score considers:
+  // 1. Reply count (weight: 40%)
+  // 2. Replies per view ratio (weight: 30%)
+  // 3. Recency (weight: 30%) - newer questions get a slight boost
+  return (
+    replyCount * 0.4 +
+    (replyCount / viewCount) * 100 * 0.3 +
+    (1 / daysSinceCreation) * 0.3
+  );
+};
+
 const AMA = () => {
-  const { user, name } = useAuth();
+  const { user } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -67,46 +97,63 @@ const AMA = () => {
   const observer = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { copyToClipboard } = useClipboard();
   const [activeFilter, setActiveFilter] = useState<FilterType>("recent");
   const [savedQuestions, setSavedQuestions] = useState<Question[]>([]);
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
 
-  const fetchQuestions = useCallback(
-    async (filter: "recent" | "popular" | "saved" = "recent") => {
-      setInitialLoading(true);
-      try {
-        const q = query(
-          collection(FIREBASE_DB, "ama"),
-          orderBy("created_at", "desc"),
-          limit(PAGE_SIZE)
-        );
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          setQuestions(
-            querySnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-              created_at: doc.data().created_at.toDate(),
-            })) as Question[]
-          );
-          setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
-        } else {
-          setHasMore(false);
-        }
-      } catch (error) {
-        toast.error("Failed to load questions");
-      } finally {
-        setInitialLoading(false);
-      }
-    },
-    []
-  );
-
+  // Initialize bookmarked questions from user data
   useEffect(() => {
-    fetchQuestions(activeFilter);
-  }, [fetchQuestions, activeFilter]);
+    const fetchUserBookmarks = async () => {
+      if (!user?.uid) return;
+
+      try {
+        const userDoc = await getDoc(doc(FIREBASE_DB, "users", user.uid));
+        const saved = userDoc.data()?.savedQuestions || [];
+        setBookmarkedQuestions(saved);
+      } catch (error) {
+        console.error("Failed to fetch bookmarks", error);
+      }
+    };
+
+    fetchUserBookmarks();
+  }, [user?.uid]);
+
+  const fetchQuestions = useCallback(async () => {
+    setInitialLoading(true);
+    try {
+      const q = query(
+        collection(FIREBASE_DB, "ama"),
+        orderBy("created_at", "desc"),
+        limit(PAGE_SIZE)
+      );
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const fetchedQuestions = querySnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            created_at: data.created_at.toDate(),
+            repliesCount: data.replies?.length || 0,
+            lastReplyDate:
+              data.replies?.length > 0
+                ? new Date(data.replies[data.replies.length - 1].created_at)
+                : undefined,
+          } as Question;
+        });
+
+        setQuestions(fetchedQuestions);
+        setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      toast.error("Failed to load questions");
+    } finally {
+      setInitialLoading(false);
+    }
+  }, []);
 
   const fetchSavedQuestions = useCallback(async () => {
     if (!user?.uid) return;
@@ -124,10 +171,12 @@ const AMA = () => {
       const questionsPromises = savedQuestionIds.map(async (id: string) => {
         const questionDoc = await getDoc(doc(FIREBASE_DB, "ama", id));
         if (questionDoc.exists()) {
+          const data = questionDoc.data();
           return {
             id: questionDoc.id,
-            ...questionDoc.data(),
-            created_at: questionDoc.data().created_at.toDate(),
+            ...data,
+            created_at: data.created_at.toDate(),
+            repliesCount: data.replies?.length || 0,
           } as Question;
         }
         return null;
@@ -145,7 +194,8 @@ const AMA = () => {
   }, [user?.uid]);
 
   const fetchMoreQuestions = useCallback(async () => {
-    if (!lastDoc || !hasMore || loadingMore) return;
+    if (!lastDoc || !hasMore || loadingMore || activeFilter !== "recent")
+      return;
     setLoadingMore(true);
 
     try {
@@ -158,17 +208,21 @@ const AMA = () => {
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        setQuestions((prev) => [
-          ...prev,
-          ...querySnapshot.docs.map(
-            (doc) =>
-              ({
-                id: doc.id,
-                ...doc.data(),
-                created_at: doc.data().created_at.toDate(),
-              } as Question)
-          ),
-        ]);
+        const newQuestions = querySnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            created_at: data.created_at.toDate(),
+            repliesCount: data.replies?.length || 0,
+            lastReplyDate:
+              data.replies?.length > 0
+                ? new Date(data.replies[data.replies.length - 1].created_at)
+                : undefined,
+          } as Question;
+        });
+
+        setQuestions((prev) => [...prev, ...newQuestions]);
         setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
       } else {
         setHasMore(false);
@@ -178,11 +232,17 @@ const AMA = () => {
     } finally {
       setLoadingMore(false);
     }
-  }, [lastDoc, hasMore, loadingMore]);
+  }, [lastDoc, hasMore, loadingMore, activeFilter]);
 
   const lastQuestionRef = useCallback(
     (node: HTMLDivElement | null) => {
-      if (initialLoading || loadingMore || !hasMore) return;
+      if (
+        initialLoading ||
+        loadingMore ||
+        !hasMore ||
+        activeFilter !== "recent"
+      )
+        return;
       if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
@@ -191,8 +251,37 @@ const AMA = () => {
       });
       if (node) observer.current.observe(node);
     },
-    [initialLoading, loadingMore, hasMore, fetchMoreQuestions]
+    [initialLoading, loadingMore, hasMore, fetchMoreQuestions, activeFilter]
   );
+
+  const getQuestionsToDisplay = () => {
+    switch (activeFilter) {
+      case "recent":
+        return questions;
+      case "popular":
+        // Sort by engagement score first, then by recency
+        return [...questions].sort((a, b) => {
+          const scoreA = calculateEngagementScore(a);
+          const scoreB = calculateEngagementScore(b);
+          if (scoreB !== scoreA) return scoreB - scoreA;
+          return b.created_at.getTime() - a.created_at.getTime();
+        });
+      case "saved":
+        return savedQuestions;
+      default:
+        return questions;
+    }
+  };
+
+  const displayedQuestions = getQuestionsToDisplay();
+
+  useEffect(() => {
+    if (activeFilter === "recent") {
+      fetchQuestions();
+    } else if (activeFilter === "saved") {
+      fetchSavedQuestions();
+    }
+  }, [activeFilter, fetchQuestions, fetchSavedQuestions]);
 
   const handleOpenQuestion = (id: string) => {
     router.push(`ama/${id}`);
@@ -204,13 +293,15 @@ const AMA = () => {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    fetchQuestions();
+    if (activeFilter === "recent") {
+      fetchQuestions();
+    }
   };
 
-  const handleShareQuestion = (id: string, e: React.MouseEvent) => {
+  const handleShareQuestion = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${window.location.origin}dashboard/ama/${id}`;
-    copyToClipboard(url);
+    const url = `${window.location.origin}/dashboard/ama/${id}`;
+    await copyLinkToClipboard(url);
     toast.success("Link copied to clipboard!");
   };
 
@@ -239,10 +330,9 @@ const AMA = () => {
         savedQuestions: newSaved,
       });
 
-      // Update local state
       setBookmarkedQuestions(newSaved);
 
-      // Refresh saved questions if we're on that tab
+      // If we're on the saved tab, refresh the list
       if (activeFilter === "saved") {
         fetchSavedQuestions();
       }
@@ -250,23 +340,6 @@ const AMA = () => {
       toast.error("Failed to update saved questions");
     }
   };
-
-  const getQuestionsToDisplay = () => {
-    switch (activeFilter) {
-      case "recent":
-        return questions;
-      case "popular":
-        return [...questions].sort(
-          (a, b) => (b.answers?.length || 0) - (a.answers?.length || 0)
-        );
-      case "saved":
-        return savedQuestions;
-      default:
-        return questions;
-    }
-  };
-
-  const displayedQuestions = getQuestionsToDisplay();
 
   return (
     <Layout>
@@ -279,7 +352,7 @@ const AMA = () => {
             </h1>
             <Button
               onClick={handleNewQuestion}
-              className="bg-black hover:bg-blue-700 text-white"
+              className="bg-white hover:bg-blue-200 text-black"
             >
               Ask a question
             </Button>
@@ -305,125 +378,13 @@ const AMA = () => {
             </Button>
             <Button
               variant={activeFilter === "saved" ? "default" : "outline"}
-              onClick={() => {
-                setActiveFilter("saved");
-                fetchSavedQuestions();
-              }}
+              onClick={() => setActiveFilter("saved")}
               className="flex items-center gap-2"
             >
               <FaBookmark size={16} />
               Saved
             </Button>
           </div>
-
-          {initialLoading ? (
-            <div className="flex justify-center py-10">
-              <Spiner />
-            </div>
-          ) : questions.length > 0 ? (
-            <div className="space-y-2">
-              {questions.map((q, index) => (
-                <div
-                  key={q.id}
-                  className="bg-black rounded-lg p-6 hover:bg-gray-900 transition-colors cursor-pointer"
-                  onClick={() => handleOpenQuestion(q.id)}
-                  ref={index === questions.length - 1 ? lastQuestionRef : null}
-                >
-                  <CardHeader className="p-0 mb-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 bg-gray-700">
-                        <AvatarImage
-                          src="https://placehold.co/400"
-                          className="overflow-auto"
-                        />
-                        <AvatarFallback>
-                          {q.isAnonymous ? "A" : q.authorName?.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle className="font-medium text-gray-100">
-                          {q.isAnonymous ? "Anonymous" : q.authorName}
-                        </CardTitle>
-                        <CardDescription className="text-blue-400">
-                          {formatDate(q.created_at)}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardTitle className="text-xl font-semibold text-gray-100 mb-2">
-                    {q.title}
-                  </CardTitle>
-
-                  <CardContent className="px-0 pb-3">
-                    <p className="text-gray-300 line-clamp-3">
-                      {q.description}
-                    </p>
-                  </CardContent>
-
-                  {/* Tags */}
-                  {q.tags && q.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {q.tags.slice(0, 3).map((tag, i) => (
-                        <span
-                          key={i}
-                          className="text-xs bg-gray-700 text-blue-400 px-2 py-1 rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <CardFooter className="flex justify-between items-center p-0">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <FaCommentAlt />
-                      <span className="text-sm">
-                        {q.answers?.length || 0} answers
-                      </span>
-                    </div>
-                    <div className="flex gap-4">
-                      <button
-                        onClick={(e) => toggleBookmark(q.id, e)}
-                        className="text-gray-400 hover:text-yellow-400 transition-colors"
-                      >
-                        {bookmarkedQuestions.includes(q.id) ? (
-                          <FaBookmark className="text-yellow-400" />
-                        ) : (
-                          <FaRegBookmark />
-                        )}
-                      </button>
-                      <button
-                        onClick={(e) => handleShareQuestion(q.id, e)}
-                        className="text-gray-400 hover:text-blue-400 transition-colors flex items-center gap-1"
-                      >
-                        <FaShare />
-                        <span className="text-sm">Share</span>
-                      </button>
-                    </div>
-                  </CardFooter>
-                </div>
-              ))}
-              {loadingMore && (
-                <div className="flex justify-center py-6">
-                  <Spiner />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-16 bg-gray-800 rounded-lg border border-gray-700">
-              <RiQuestionAnswerFill size={48} className="text-gray-500 mb-4" />
-              <p className="text-gray-400 mb-6">
-                No questions yet. Be the first to ask!
-              </p>
-              <Button
-                onClick={handleNewQuestion}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Ask a question
-              </Button>
-            </div>
-          )}
 
           {initialLoading || (activeFilter === "saved" && isLoadingSaved) ? (
             <div className="flex justify-center py-10">
@@ -434,10 +395,10 @@ const AMA = () => {
               {displayedQuestions.map((q, index) => (
                 <div
                   key={q.id}
-                  className="bg-black rounded-lg p-6 hover:bg-gray-900 transition-colors cursor-pointer"
+                  className="rounded-lg p-6 hover:bg-gray-900 transition-colors cursor-pointer"
                   onClick={() => handleOpenQuestion(q.id)}
                   ref={
-                    activeFilter !== "saved" &&
+                    activeFilter === "recent" &&
                     index === displayedQuestions.length - 1
                       ? lastQuestionRef
                       : null
@@ -493,7 +454,7 @@ const AMA = () => {
                     <div className="flex items-center gap-2 text-gray-400">
                       <FaCommentAlt />
                       <span className="text-sm">
-                        {q.answers?.length || 0} answers
+                        {q.replies?.length || 0} replies
                       </span>
                     </div>
                     <div className="flex gap-4">
@@ -518,7 +479,7 @@ const AMA = () => {
                   </CardFooter>
                 </div>
               ))}
-              {loadingMore && activeFilter !== "saved" && (
+              {loadingMore && activeFilter === "recent" && (
                 <div className="flex justify-center py-6">
                   <Spiner />
                 </div>
@@ -553,6 +514,7 @@ const AMA = () => {
             </div>
           )}
         </div>
+
         {/* Right Sidebar */}
         <div className="hidden lg:block lg:w-1/3 space-y-6">
           {/* Popular Questions */}
@@ -562,10 +524,12 @@ const AMA = () => {
               Trending Questions
             </h2>
             <div className="space-y-4">
-              {questions
-                .sort(
-                  (a, b) => (b.answers?.length || 0) - (a.answers?.length || 0)
-                )
+              {[...questions]
+                .sort((a, b) => {
+                  const scoreA = calculateEngagementScore(a);
+                  const scoreB = calculateEngagementScore(b);
+                  return scoreB - scoreA;
+                })
                 .slice(0, 3)
                 .map((q) => (
                   <div
@@ -578,34 +542,14 @@ const AMA = () => {
                     </h3>
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-xs text-blue-400">
-                        {q.answers?.length || 0} answers
+                        {q.repliesCount || q.replies?.length || 0} replies
                       </span>
                       <span className="text-xs text-gray-500">
-                        {formatDate(q.created_at)}
+                        {formatDate(q.lastReplyDate || q.created_at)}
                       </span>
                     </div>
                   </div>
                 ))}
-            </div>
-          </div>
-
-          {/* Newsletter Subscription */}
-          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-100 mb-2">
-              Stay Updated
-            </h2>
-            <p className="text-gray-400 text-sm mb-4">
-              Get the latest questions and answers delivered to your inbox
-            </p>
-            <div className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="Your email"
-                className="bg-gray-700 border-gray-600 text-white"
-              />
-              <Button className="bg-black hover:bg-blue-700 text-white">
-                Subscribe
-              </Button>
             </div>
           </div>
 
@@ -637,8 +581,8 @@ const AMA = () => {
       </div>
 
       {/* New Question Modal */}
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
-        <div className="h-full flex flex-col">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <div className="flex flex-col h-full flex-1 overflow-y-auto p-4">
           <AskQuestionsPage onClick={handleCloseModal} />
         </div>
       </Modal>

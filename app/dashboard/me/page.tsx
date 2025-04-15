@@ -2,7 +2,7 @@
 
 import Layout from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/Modal";
 import EditMainUserComponent from "./EditMainUserComponent";
@@ -20,7 +20,6 @@ import AddResearch from "./AddResearch";
 import { getDoc, doc } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { useAuth } from "@/app/auth/AuthContext";
-import { usePageHeading } from "@/app/auth/PageHeadingContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -39,6 +38,7 @@ import {
 } from "react-icons/fa";
 import { MdScience, MdBusinessCenter } from "react-icons/md";
 import ProfileStats from "./Stats";
+import { useSearchParams } from "next/navigation";
 
 interface UserProfile {
   name: string;
@@ -97,14 +97,25 @@ interface UserProfile {
   patents?: number;
   researchInterests?: string[];
 }
+type FilterType =
+  | "overview"
+  | "research"
+  | "projects"
+  | "startups"
+  | "settings";
 
 const UserProfileComponent = () => {
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams?.get("tab") || "overview";
+  console.log("Default Tab:", defaultTab);
+  const [activeTab, setActiveTab] = useState<FilterType>(
+    defaultTab as FilterType
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModal2Open, setIsModal2Open] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -346,7 +357,7 @@ const UserProfileComponent = () => {
         <div className="mt-8">
           <Tabs
             value={activeTab}
-            onValueChange={setActiveTab}
+            onValueChange={(value) => setActiveTab(value as FilterType)}
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-5 h-12 bg-[#252525]">

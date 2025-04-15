@@ -2,36 +2,14 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import ProjectDetailSidebar from "./DetailedSidebar";
 import { BsPersonCircle } from "react-icons/bs";
-
-interface ResearchItem {
-  title: string;
-  type: string;
-  date: string;
-  reads: number;
-  citations: number;
-  authors?: Author[];
-  doi?: string;
-  description: string;
-  publishedIn: string;
-  publisher: string;
-  location: string;
-  edition: string;
-  futureScope: string;
-}
-
-interface Author {
-  id: string;
-  name: string;
-}
+import { ResearchItem } from "@/types/ResearchWork";
 
 interface ActivityProps {
   researchItems: ResearchItem[];
+  searchQuery: string;
 }
 
-const ResearchWork = ({
-  researchItems,
-  searchQuery,
-}: ActivityProps & { searchQuery: string }) => {
+const ResearchWork = ({ researchItems, searchQuery }: ActivityProps) => {
   const [selectedItem, setSelectedItem] = useState<ResearchItem | null>(null);
 
   const highlightText = (text: string, searchQuery: string) => {
@@ -70,8 +48,12 @@ const ResearchWork = ({
                   <div className="flex flex-row justify-start text-sm flex-wrap gap-3">
                     <span className="bg-cyan-600 px-2">{item.type}</span>
                     <span>{item.date}</span>
-                    {item.reads > 0 && <span>{item.reads} reads</span>}
-                    {item.reads > 0 && <span>{item.citations} citations</span>}
+                    {item.reads && item.reads > 0 && (
+                      <span>{item.reads} reads</span>
+                    )}
+                    {item.citations && item.citations > 0 && (
+                      <span>{item.citations} citations</span>
+                    )}
                   </div>
 
                   <div className="flex flex-row flex-wrap overflow-hidden max-h-16">

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import CustomModal from "@/components/ModalWrapper";
 
 interface InternshipDetailsModalProps {
-  isOpen: boolean;
   onClose: () => void;
   internship: {
     description: string;
@@ -16,12 +15,11 @@ interface InternshipDetailsModalProps {
 }
 
 const InternshipDetailsModal = ({
-  isOpen,
   onClose,
   internship,
 }: InternshipDetailsModalProps) => {
   return (
-    <CustomModal isOpen={isOpen} onClose={onClose}>
+    <div>
       <div className="space-y-4">
         <div>
           <h3 className="font-medium">Full Description</h3>
@@ -66,7 +64,7 @@ const InternshipDetailsModal = ({
           <Button onClick={onClose}>Close</Button>
         </div>
       </div>
-    </CustomModal>
+    </div>
   );
 };
 

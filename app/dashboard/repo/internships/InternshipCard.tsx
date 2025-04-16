@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import ApplyInternshipModal from "./Apply";
 import InternshipDetailsModal from "./Details";
+import Modal from "@/components/Modal";
 
 const InternshipCard = ({ internship }: any) => {
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
@@ -60,6 +61,15 @@ const InternshipCard = ({ internship }: any) => {
 
   const colors = getTypeColor();
 
+  const handleApply = () => {
+    if (internship.responseType === "email") {
+      const email = internship.contactEmail;
+
+      return;
+    }
+    setIsApplyModalOpen(true);
+  };
+
   return (
     <>
       <Card
@@ -96,7 +106,8 @@ const InternshipCard = ({ internship }: any) => {
               <span className="text-gray-300">
                 {internship.professor ||
                   internship.company ||
-                  internship.organization}
+                  internship.organization ||
+                  "N/A"}
               </span>
             </div>
 
@@ -145,26 +156,32 @@ const InternshipCard = ({ internship }: any) => {
           </Button>
           <Button
             size="sm"
-            className={`flex-1 ${colors.border} ${colors.bg.replace(
-              "/30",
-              "/50"
-            )} hover:${colors.bg.replace("/30", "/70")} text-white`}
-            onClick={() => setIsApplyModalOpen(true)}
+            className="flex-1 bg-gray-700 border-gray-600 hover:bg-gray-600 text-white"
+            onClick={handleApply}
           >
             Apply Now
           </Button>
         </CardFooter>
       </Card>
-      <ApplyInternshipModal
+      <Modal
         isOpen={isApplyModalOpen}
         onClose={() => setIsApplyModalOpen(false)}
-        internship={internship}
-      />
-      <InternshipDetailsModal
-        isOpen={isDetailsOpen}
-        onClose={() => setIsDetailsOpen(false)}
-        internship={internship}
-      />
+      >
+        <div className="flex flex-col h-full flex-1 overflow-y-auto p-4">
+          <ApplyInternshipModal
+            onClose={() => setIsApplyModalOpen(false)}
+            internship={internship}
+          />
+        </div>
+      </Modal>
+      <Modal isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)}>
+        <div className="flex flex-col h-full flex-1 overflow-y-auto p-4">
+          <InternshipDetailsModal
+            onClose={() => setIsDetailsOpen(false)}
+            internship={internship}
+          />
+        </div>
+      </Modal>
     </>
   );
 };

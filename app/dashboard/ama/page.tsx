@@ -505,7 +505,7 @@ const AMA = () => {
                   </p>
                   <Button
                     onClick={handleNewQuestion}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-blue-200 hover:bg-blue-700 text-gray-900"
                   >
                     Ask a question
                   </Button>

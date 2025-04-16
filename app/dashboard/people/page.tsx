@@ -181,7 +181,7 @@ const PeopleCards = () => {
                 </p>
                 <Button
                   variant="outline"
-                  className="w-full bg-blue-600 hover:bg-blue-700 border-none text-white"
+                  className="w-full bg-blue-200 hover:bg-blue-700 border-none text-gray-900"
                   onClick={() => router.push("/dashboard/repo/open")}
                 >
                   Browse Projects
@@ -351,7 +351,7 @@ const PeopleCards = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 bg-blue-600 border-blue-600 hover:bg-blue-700 text-white"
+                        className="flex-1 bg-blue-200 border-blue-600 hover:bg-blue-700 text-gray-900"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/dashboard/people/${user.id}`);

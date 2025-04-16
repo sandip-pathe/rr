@@ -59,7 +59,7 @@ export default function DefaultNotificationContent({
                 window.location.href = notification.link;
               }
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white"
+            className="px-4 py-2 bg-blue-200 hover:bg-blue-700 rounded text-gray-900"
           >
             Go to {notification.type}
           </button>

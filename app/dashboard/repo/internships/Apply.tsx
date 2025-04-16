@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { toast } from "sonner";
 import { IoClose } from "react-icons/io5";
+import { Internship } from "@/types/Internship";
 
 interface ApplicationFormData {
   coverLetter: string;
@@ -29,13 +30,7 @@ export default function ApplyInternshipModal({
   internship,
 }: {
   onClose: () => void;
-  internship: {
-    id: string;
-    title: string;
-    type: string;
-    organization: string;
-    deadline?: string;
-  };
+  internship: Internship;
 }) {
   const { user, loading: authLoading, name } = useAuth();
   const router = useRouter();

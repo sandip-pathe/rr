@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  FiFilter,
   FiRefreshCw,
   FiPlus,
   FiBriefcase,
@@ -23,8 +22,8 @@ import {
 } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import AddInternshipModal from "./AddInternshipForm";
-import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
-import { Internship } from "@/types/Internship";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { Internship, InternshipType } from "@/types/Internship";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import Modal from "@/components/Modal";
 import {
@@ -37,6 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 export default function InternshipsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,8 +50,10 @@ export default function InternshipsPage() {
   const [filters, setFilters] = useState({
     type: "",
     compensation: "",
-    activeOnly: true,
+    status: "open",
   });
+
+  const router = useRouter();
 
   const fetchInternships = async () => {
     try {
@@ -67,25 +69,26 @@ export default function InternshipsPage() {
           id: doc.id,
           title: data.title,
           type: data.type,
-          department: data.department,
-          professor: data.professor,
-          company: data.company,
-          founders: data.founders,
-          organization: data.organization,
-          location: data.location,
+          department: data?.department,
+          professor: data?.professor,
+          company: data?.company,
+          founders: data?.founders,
+          organization: data?.organization,
+          location: data?.location,
           duration: data.duration,
+          workload: data?.workload,
           compensationType: data.compensationType,
           compensation: data.compensation,
-          equity: data.equity,
           deadline: data.deadline,
           description: data.description,
           requirements: data.requirements,
           skills: data.skills,
           createdAt: data.createdAt.toDate(),
-          createdBy: data.createdBy,
-          contactEmail: data.contactEmail,
-          applyLink: data.applyLink,
-          status: data.status,
+          createdBy: data?.createdBy,
+          createdId: data.createdId,
+          contactEmail: data?.contactEmail,
+          applyLink: data?.applyLink,
+          status: data.status || "open",
         });
       });
 
@@ -110,25 +113,21 @@ export default function InternshipsPage() {
   const applyFilters = () => {
     let result = [...internships];
 
-    // Filter by active deadlines if enabled
-    if (filters.activeOnly) {
-      result = result.filter((i) => new Date(i.deadline) > new Date());
+    // Filter by status
+    if (filters.status) {
+      result = result.filter((i) => i.status === filters.status);
     }
 
-    // Filter by type
+    // Filter by type - now compares enum values
     if (filters.type) {
       result = result.filter((i) => i.type === filters.type);
     }
 
     // Filter by compensation
     if (filters.compensation) {
-      if (filters.compensation === "paid") {
-        result = result.filter((i) => i.compensationType === "Paid");
-      } else {
-        result = result.filter(
-          (i) => !i.compensationType || i.compensationType !== "Paid"
-        );
-      }
+      result = result.filter(
+        (i) => i.compensationType === filters.compensation
+      );
     }
 
     // Search filter
@@ -156,12 +155,12 @@ export default function InternshipsPage() {
     setFilters({
       type: "",
       compensation: "",
-      activeOnly: true,
+      status: "open",
     });
     setSearchTerm("");
   };
 
-  const getTypeCount = (type: string) => {
+  const getTypeCount = (type: InternshipType) => {
     return internships.filter((i) => i.type === type).length;
   };
 
@@ -169,17 +168,14 @@ export default function InternshipsPage() {
     return (
       <Layout>
         <DiscoverTabs />
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 m-6">
-          <div className="lg:col-span-1 space-y-6">
-            <Skeleton className="h-[180px] w-full rounded-lg" />
-            <Skeleton className="h-[180px] w-full rounded-lg" />
-            <Skeleton className="h-[180px] w-full rounded-lg" />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 m-6">
           <div className="lg:col-span-2 space-y-6">
             <Skeleton className="h-[60px] w-full rounded-lg" />
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-[180px] w-full rounded-lg" />
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-[180px] w-full rounded-lg" />
+              ))}
+            </div>
           </div>
           <div className="lg:col-span-1 space-y-6">
             <Skeleton className="h-[180px] w-full rounded-lg" />
@@ -210,39 +206,51 @@ export default function InternshipsPage() {
   return (
     <Layout>
       <DiscoverTabs />
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 m-6">
-        {/* Left Sidebar - Filters */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Filter Section */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FiFilter className="text-blue-400" size={20} />
-                  <CardTitle className="text-white text-lg">Filters</CardTitle>
-                </div>
-                {(filters.type || filters.compensation) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="text-blue-400 hover:text-blue-300"
-                  >
-                    <FiX size={16} className="mr-1" />
-                    Clear
-                  </Button>
-                )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 m-6">
+        {/* Main Content Area */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Search and Filters Bar */}
+          <Card className="bg-gray-800 border-gray-700 p-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Search internships by title, skills, or professor..."
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Button
+                  onClick={fetchInternships}
+                  variant="outline"
+                  className="bg-gray-700 border-gray-600 hover:bg-gray-600 text-white flex items-center gap-2"
+                >
+                  <FiRefreshCw size={16} />
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">
-                  Internship Type
-                </label>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Status Filter */}
+                <Select
+                  value={filters.status}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, status: value })
+                  }
+                >
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Type Filter */}
                 <Select
                   value={filters.type}
                   onValueChange={(value) =>
-                    setFilters({ ...filters, type: value })
+                    setFilters({ ...filters, type: value as InternshipType })
                   }
                 >
                   <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
@@ -250,28 +258,29 @@ export default function InternshipsPage() {
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700">
                     <SelectItem value="university">
-                      University Research ({getTypeCount("university")})
+                      University Research &nbsp;(&nbsp;
+                      {getTypeCount("university")}
+                      &nbsp;)
                     </SelectItem>
                     <SelectItem value="startup">
-                      Student Startup ({getTypeCount("startup")})
+                      Student Startup &nbsp;(&nbsp;{getTypeCount("startup")}
+                      &nbsp;)
                     </SelectItem>
                     <SelectItem value="corporate">
-                      Corporate ({getTypeCount("corporate")})
+                      Corporate Partnership &nbsp;(&nbsp;
+                      {getTypeCount("corporate")}&nbsp;)
                     </SelectItem>
                     <SelectItem value="government">
-                      Government ({getTypeCount("government")})
+                      Government Program &nbsp;(&nbsp;
+                      {getTypeCount("government")}&nbsp;)
                     </SelectItem>
                     <SelectItem value="other">
-                      Other ({getTypeCount("other")})
+                      Other &nbsp;(&nbsp;{getTypeCount("other")}&nbsp;)
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">
-                  Compensation
-                </label>
+                {/* Compensation Filter */}
                 <Select
                   value={filters.compensation}
                   onValueChange={(value) =>
@@ -279,164 +288,116 @@ export default function InternshipsPage() {
                   }
                 >
                   <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                    <SelectValue placeholder="All" />
+                    <SelectValue placeholder="All Compensation" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="paid">Paid Only</SelectItem>
-                    <SelectItem value="unpaid">Unpaid Only</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="unpaid">Unpaid</SelectItem>
+                    <SelectItem value="stipend">Stipend</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="flex items-center space-x-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="activeOnly"
-                  checked={filters.activeOnly}
-                  onChange={(e) =>
-                    setFilters({ ...filters, activeOnly: e.target.checked })
-                  }
-                  className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-                />
-                <label
-                  htmlFor="activeOnly"
-                  className="text-sm font-medium text-gray-300"
-                >
-                  Show only active opportunities
-                </label>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Stats */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <FiBriefcase className="text-blue-400" size={20} />
-                <CardTitle className="text-white text-lg">
-                  Internship Stats
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Total</span>
-                <span className="text-white font-medium">
-                  {internships.length}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Active</span>
-                <span className="text-white font-medium">
-                  {
-                    internships.filter((i) => new Date(i.deadline) > new Date())
-                      .length
-                  }
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Paid</span>
-                <span className="text-white font-medium">
-                  {
-                    internships.filter((i) => i.compensationType === "paid")
-                      .length
-                  }
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Internship Feed */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Search/Filter Bar */}
-          <Card className="bg-gray-800 border-gray-700 p-4">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Search internships by title, skills, or professor..."
-                className="flex-1 bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Button
-                onClick={fetchInternships}
-                variant="outline"
-                className="bg-gray-700 border-gray-600 hover:bg-gray-600 text-white flex items-center gap-2"
-              >
-                <FiRefreshCw size={16} />
-              </Button>
-            </div>
-          </Card>
-
-          {/* Active Filters Display */}
-          {(filters.type || filters.compensation) && (
-            <div className="flex flex-wrap gap-2">
-              {filters.type && (
-                <Badge className="bg-blue-900 hover:bg-blue-800 text-blue-100">
-                  Type: {filters.type}
-                  <button
-                    onClick={() => setFilters({ ...filters, type: "" })}
-                    className="ml-2 hover:text-blue-300"
-                  >
-                    <FiX size={14} />
-                  </button>
-                </Badge>
-              )}
-              {filters.compensation && (
-                <Badge className="bg-green-900 hover:bg-green-800 text-green-100">
-                  {filters.compensation === "paid" ? (
-                    <>
-                      <FiDollarSign size={14} className="mr-1" />
-                      Paid Only
-                    </>
-                  ) : (
-                    "Unpaid Only"
+              {/* Active Filters Display */}
+              {(filters.type ||
+                filters.compensation ||
+                filters.status !== "open") && (
+                <div className="flex flex-wrap gap-2">
+                  {filters.status !== "open" && (
+                    <Badge className="bg-purple-900 hover:bg-purple-800 text-purple-100">
+                      Status: {filters.status}
+                      <button
+                        onClick={() =>
+                          setFilters({ ...filters, status: "open" })
+                        }
+                        className="ml-2 hover:text-purple-300"
+                      >
+                        <FiX size={14} />
+                      </button>
+                    </Badge>
                   )}
-                  <button
-                    onClick={() => setFilters({ ...filters, compensation: "" })}
-                    className="ml-2 hover:text-green-300"
-                  >
-                    <FiX size={14} />
-                  </button>
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {/* Internship Cards Grid */}
-          <div className="grid grid-cols-1 gap-4">
-            {filteredInternships.length > 0 ? (
-              filteredInternships.map((internship) => (
-                <InternshipCard key={internship.id} internship={internship} />
-              ))
-            ) : (
-              <Card className="bg-gray-800 border-gray-700 p-6 text-center">
-                <p className="text-gray-400">
-                  No internships match your filters
-                </p>
-                <div className="mt-4 flex justify-center gap-3">
+                  {filters.type && (
+                    <Badge className="bg-blue-900 hover:bg-blue-800 text-blue-100">
+                      Type: {filters.type}
+                      <button
+                        onClick={() => setFilters({ ...filters, type: "" })}
+                        className="ml-2 hover:text-blue-300"
+                      >
+                        <FiX size={14} />
+                      </button>
+                    </Badge>
+                  )}
+                  {filters.compensation && (
+                    <Badge className="bg-green-900 hover:bg-green-800 text-green-100">
+                      {filters.compensation === "paid" ? (
+                        <>
+                          <FiDollarSign size={14} className="mr-1" />
+                          Paid
+                        </>
+                      ) : filters.compensation === "stipend" ? (
+                        "Stipend"
+                      ) : (
+                        "Unpaid"
+                      )}
+                      <button
+                        onClick={() =>
+                          setFilters({ ...filters, compensation: "" })
+                        }
+                        className="ml-2 hover:text-green-300"
+                      >
+                        <FiX size={14} />
+                      </button>
+                    </Badge>
+                  )}
                   <Button
                     onClick={clearFilters}
-                    variant="outline"
-                    className="text-white"
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-400 hover:text-blue-300"
                   >
-                    Clear Filters
-                  </Button>
-                  <Button
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-blue-200 hover:bg-blue-700"
-                  >
-                    Add New Internship
+                    Clear All
                   </Button>
                 </div>
-              </Card>
+              )}
+            </div>
+          </Card>
+
+          {/* Internship Cards Grid - 2 per row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredInternships.length > 0 ? (
+              filteredInternships.map((i) => (
+                <InternshipCard key={i.id} internship={i} />
+              ))
+            ) : (
+              <div className="md:col-span-2">
+                <Card className="bg-gray-800 border-gray-700 p-6 text-center">
+                  <p className="text-gray-400">
+                    No internships match your filters
+                  </p>
+                  <div className="mt-4 flex justify-center gap-3">
+                    <Button
+                      onClick={clearFilters}
+                      variant="outline"
+                      className="text-white"
+                    >
+                      Clear Filters
+                    </Button>
+                    <Button
+                      onClick={() => setIsModalOpen(true)}
+                      className="bg-blue-200 hover:bg-blue-700"
+                    >
+                      Add New Internship
+                    </Button>
+                  </div>
+                </Card>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Right Sidebar - Add Internship & Resources */}
+        {/* Right Sidebar */}
         <div className="lg:col-span-1 space-y-6">
+          {/* Add Internship Card */}
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-3">
               <Button
@@ -451,18 +412,69 @@ export default function InternshipsPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <CardDescription className="text-gray-400 text-sm">
-                Professors and startups can list new internship opportunities
-                here
+              <CardDescription className="text-gray-400 text-sm gap-2 flex items-center">
+                <span>
+                  Professors and startups can list new internship opportunities
+                  here
+                </span>
+                <button
+                  onClick={() => {
+                    router.push("/manage");
+                  }}
+                  className="text-blue-400 hover:underline hover:text-blue-300"
+                >
+                  Manage Internships
+                </button>
               </CardDescription>
-              <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-                <div className="flex flex-col h-full flex-1 overflow-y-auto p-4">
-                  <AddInternshipModal
-                    onClose={() => setIsModalOpen(false)}
-                    onSubmitSuccess={handleSuccess}
-                  />
-                </div>
-              </Modal>
+            </CardContent>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+              <div className="flex flex-col h-full flex-1 overflow-y-auto p-4">
+                <AddInternshipModal
+                  onClose={() => setIsModalOpen(false)}
+                  onSubmitSuccess={handleSuccess}
+                />
+              </div>
+            </Modal>
+          </Card>
+
+          {/* Internship Stats */}
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <FiBriefcase className="text-blue-400" size={20} />
+                <CardTitle className="text-white text-lg">
+                  Internship Stats
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 flex flex-row justify-between items-baseline">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-gray-400">Total</span>
+                <span className="text-white font-medium">
+                  {internships.length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-gray-400">Open</span>
+                <span className="text-white font-medium">
+                  {internships.filter((i) => i.status === "open").length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-gray-400">Closed</span>
+                <span className="text-white font-medium">
+                  {internships.filter((i) => i.status === "closed").length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-gray-400">Paid</span>
+                <span className="text-white font-medium">
+                  {
+                    internships.filter((i) => i.compensationType === "paid")
+                      .length
+                  }
+                </span>
+              </div>
             </CardContent>
           </Card>
 
@@ -478,7 +490,7 @@ export default function InternshipsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {internships
-                .filter((i) => new Date(i.deadline) > new Date())
+                .filter((i) => i.status === "open")
                 .sort(
                   (a, b) =>
                     new Date(a.deadline).getTime() -
@@ -498,8 +510,7 @@ export default function InternshipsPage() {
                     </span>
                   </div>
                 ))}
-              {internships.filter((i) => new Date(i.deadline) > new Date())
-                .length === 0 && (
+              {internships.filter((i) => i.status === "open").length === 0 && (
                 <p className="text-gray-400 text-sm">No upcoming deadlines</p>
               )}
             </CardContent>

@@ -1,18 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, onSnapshot, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import Layout from "@/components/Layout";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { FaPlus, FaUsers, FaEllipsisH, FaEye, FaEdit } from "react-icons/fa";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FaPlus } from "react-icons/fa";
+import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { FIREBASE_DB } from "@/FirebaseConfig";
-import { Avatar } from "@/components/ui/avatar";
 import Modal from "@/components/Modal";
 import ProjectForm from "./newForm";
 import { useAuth } from "@/app/auth/AuthContext";

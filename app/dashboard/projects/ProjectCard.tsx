@@ -71,7 +71,6 @@ const ProjectViewCard = ({
   members = [],
   adminDetails = {},
   memberDetails = {},
-  description = "",
   category = "",
   createdAt = "",
   onEdit,

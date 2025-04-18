@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/app/auth/AuthContext";
 import { useRouter } from "next/navigation";
-import { usePageHeading } from "@/app/auth/PageHeadingContext";
 
 const Header = () => {
   const { user, logout, loading, name, role } = useAuth();
   const router = useRouter();
-  const { heading, isVisible } = usePageHeading();
+  const heading = "Research Repo Web App";
+  const isVisible = typeof window !== "undefined" && window.innerWidth < 768;
 
   const handleLogout = async () => {
     await logout();
@@ -51,7 +51,8 @@ const Header = () => {
       {/* Search bar - hidden on mobile, shown on large screens */}
       <Input
         className="hidden lg:block w-96 h-8 bg-[#1f1f1e] text-white"
-        placeholder="Search (Alt+Shift+E)"
+        placeholder="Search..."
+        disabled
       />
 
       <DropdownMenu>

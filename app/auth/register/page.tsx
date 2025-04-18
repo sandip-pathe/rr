@@ -7,13 +7,16 @@ export default function Home() {
     <div className="flex h-screen max-h-screen ">
       <section className=" container my-auto">
         <div className="sub-container max-w-[496px]">
-          <Image
-            src="/assets/icons/logo-full.svg"
-            height={1000}
-            width={1000}
-            alt="logo"
-            className="mb-7 h-10 w-fit"
-          />
+          <div className="flex flex-row items-center justify-start gap-4 mb-10">
+            <Image
+              src="/assets/icons/logow.svg"
+              height={1000}
+              width={1000}
+              alt="logo"
+              className="h-10 w-fit"
+            />
+            <h1 className="text-4xl font-semibold">Research Repo Web App</h1>
+          </div>
           <UserForm />
           <div className="text-14-regular mt-10 flex justify-between">
             <Link href="../../" className="text-green-500">

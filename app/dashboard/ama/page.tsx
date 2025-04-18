@@ -34,11 +34,9 @@ import { FIREBASE_DB } from "@/FirebaseConfig";
 import { copyLinkToClipboard, formatDate } from "./helper";
 import Modal from "@/components/Modal";
 import AskQuestionsPage from "./AskQuestionsPage";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useClipboard } from "@/components/UseClipboard";
 import { useAuth } from "@/app/auth/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface Question {
   id: string;
@@ -100,6 +98,7 @@ const AMA = () => {
   const [activeFilter, setActiveFilter] = useState<FilterType>("recent");
   const [savedQuestions, setSavedQuestions] = useState<Question[]>([]);
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const { toast } = useToast();
 
   // Initialize bookmarked questions from user data
   useEffect(() => {
@@ -149,7 +148,10 @@ const AMA = () => {
         setHasMore(false);
       }
     } catch (error) {
-      toast.error("Failed to load questions");
+      toast({
+        variant: "destructive",
+        title: "Error fetching questions",
+      });
     } finally {
       setInitialLoading(false);
     }
@@ -187,7 +189,10 @@ const AMA = () => {
       ) as Question[];
       setSavedQuestions(questions);
     } catch (error) {
-      toast.error("Failed to load saved questions");
+      toast({
+        variant: "destructive",
+        title: "Error fetching saved questions",
+      });
     } finally {
       setIsLoadingSaved(false);
     }
@@ -228,7 +233,10 @@ const AMA = () => {
         setHasMore(false);
       }
     } catch (error) {
-      toast.error("Failed to load more questions");
+      toast({
+        variant: "destructive",
+        title: "Error fetching more questions",
+      });
     } finally {
       setLoadingMore(false);
     }
@@ -302,13 +310,18 @@ const AMA = () => {
     e.stopPropagation();
     const url = `${window.location.origin}/dashboard/ama/${id}`;
     await copyLinkToClipboard(url);
-    toast.success("Link copied to clipboard!");
+    toast({
+      title: "Link copied to clipboard!",
+    });
   };
 
   const toggleBookmark = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user?.uid) {
-      toast.error("Please login to save questions");
+      toast({
+        variant: "destructive",
+        title: "Please login to save questions.",
+      });
       return;
     }
 
@@ -320,10 +333,14 @@ const AMA = () => {
       let newSaved;
       if (currentSaved.includes(id)) {
         newSaved = currentSaved.filter((qId: string) => qId !== id);
-        toast.success("Removed from saved questions");
+        toast({
+          title: "Removed from saved questions.",
+        });
       } else {
         newSaved = [...currentSaved, id];
-        toast.success("Added to saved questions");
+        toast({
+          title: "Added to saved questions",
+        });
       }
 
       await updateDoc(userRef, {
@@ -337,7 +354,10 @@ const AMA = () => {
         fetchSavedQuestions();
       }
     } catch (error) {
-      toast.error("Failed to update saved questions");
+      toast({
+        variant: "destructive",
+        title: "Error updating saved questions",
+      });
     }
   };
 

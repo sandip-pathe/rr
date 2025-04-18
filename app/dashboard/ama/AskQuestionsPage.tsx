@@ -19,7 +19,7 @@ import { Switch } from "@headlessui/react";
 import Image from "next/image";
 import { FormFieldType } from "@/enum/FormFieldTypes";
 import { AMAAskFormValidation } from "@/lib/Validation";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILES = 3;
@@ -31,6 +31,7 @@ const AskQuestionsPage = ({ onClick }: { onClick: () => void }) => {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const { user, name } = useAuth();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof AMAAskFormValidation>>({
     resolver: zodResolver(AMAAskFormValidation),
@@ -44,11 +45,18 @@ const AskQuestionsPage = ({ onClick }: { onClick: () => void }) => {
     if (rejectedFiles.length > 0) {
       const firstRejection = rejectedFiles[0];
       if (firstRejection.errors[0].code === "file-too-large") {
-        toast.error(
-          `File is too large. Max size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`
-        );
+        toast({
+          variant: "destructive",
+          title: "File is too large.",
+          description: `Maximum file size is ${
+            MAX_FILE_SIZE / (1024 * 1024)
+          }MB.`,
+        });
       } else {
-        toast.error("Invalid file type. Only images are allowed.");
+        toast({
+          variant: "destructive",
+          description: `Invalid file type. Only images are allowed.`,
+        });
       }
       return;
     }
@@ -61,12 +69,24 @@ const AskQuestionsPage = ({ onClick }: { onClick: () => void }) => {
       setUploadedImages((prevImages) => {
         const remainingSlots = MAX_FILES - prevImages.length;
         if (remainingSlots <= 0) {
-          toast.error(`You can only upload up to ${MAX_FILES} images`);
+          toast({
+            variant: "destructive",
+            title: "File is too large.",
+            description: `Maximum file size is ${
+              MAX_FILE_SIZE / (1024 * 1024)
+            }MB.`,
+          });
           return prevImages;
         }
         const newFiles = validFiles.slice(0, remainingSlots);
         if (newFiles.length < validFiles.length) {
-          toast.error(`You can only upload up to ${MAX_FILES} images total`);
+          toast({
+            variant: "destructive",
+            title: "File is too large.",
+            description: `Maximum file size is ${
+              MAX_FILE_SIZE / (1024 * 1024)
+            }MB.`,
+          });
         }
         return [...prevImages, ...newFiles];
       });
@@ -114,7 +134,10 @@ const AskQuestionsPage = ({ onClick }: { onClick: () => void }) => {
       // Upload images first
       let imageUrls: string[] = [];
       if (uploadedImages.length > 0) {
-        toast.info("Uploading images...");
+        toast({
+          variant: "default",
+          description: `uploading ${uploadedImages.length} image(s)...`,
+        });
         imageUrls = await uploadFilesToStorage(uploadedImages);
         setUploadProgress(100);
       }
@@ -134,12 +157,19 @@ const AskQuestionsPage = ({ onClick }: { onClick: () => void }) => {
       };
 
       await addDoc(collection(FIREBASE_DB, "ama"), postData);
-      toast.success("Question submitted successfully!");
+      toast({
+        variant: "default",
+        description: `Question posted successfully!`,
+      });
+
       router.refresh();
       onClick();
     } catch (error) {
       console.error("Error submitting question:", error);
-      toast.error("Failed to submit question. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Error submitting question",
+      });
     } finally {
       setIsSubmitting(false);
       setUploadProgress(0);

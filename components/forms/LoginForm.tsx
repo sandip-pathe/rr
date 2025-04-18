@@ -71,9 +71,6 @@ const LoginPage = () => {
           iconAlt="password"
           control={form.control}
         />
-        <Link href="/auth/register" className="text-[#7839EE] mt-10">
-          Forgot Password?
-        </Link>
         <SubmitButton isLoading={isLoading}>Log In</SubmitButton>
       </form>
     </Form>

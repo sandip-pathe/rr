@@ -30,7 +30,9 @@ export default function Home() {
               alt="logo"
               className="h-10 w-fit"
             />
-            <h1 className="text-4xl font-semibold">Research Repo Web App</h1>
+            <h1 className="text-2xl font-bold text-[#7839EE]">
+              Research Repo Web App
+            </h1>
           </div>
           <LoginForm />
           <div className="text-14-regular mt-10 flex justify-between">
@@ -38,7 +40,7 @@ export default function Home() {
               Register
             </Link>
             <Link href="/?admin=true" className="text-[#7839EE]">
-              Admin
+              Forgot Password?
             </Link>
           </div>
         </div>

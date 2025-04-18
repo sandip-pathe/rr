@@ -8,7 +8,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <Header />
       <div className="flex overflow-auto">
         <Sidebar />
-        <main className="flex-grow ml-20 mt-12">{children}</main>
+        {/* Adjust margin based on screen size */}
+        <main className="flex-grow lg:ml-20 mt-12 pb-16 lg:pb-0">
+          {children}
+        </main>
       </div>
     </>
   );

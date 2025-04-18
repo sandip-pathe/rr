@@ -22,6 +22,7 @@ import CustomFormField from "@/components/CustomFormField";
 import { Form } from "@/components/ui/form";
 import { FormFieldType } from "@/enum/FormFieldTypes";
 import { useAuth } from "@/app/auth/AuthContext";
+import { addTaskNotification } from "@/app/dashboard/activity/AddNotification";
 
 interface TaskFormValues {
   title: string;
@@ -164,16 +165,58 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
       };
 
       if (taskId === "new") {
-        await addDoc(
+        // Create new task
+        const taskRef = await addDoc(
           collection(FIREBASE_DB, "projects", projectId as string, "tasks"),
           taskData
         );
+
+        // Notify all assigned users (except current user) about new assignment
+        const notificationPromises = assignedUsers
+          .filter((u) => u.id !== user?.uid)
+          .map((user) =>
+            addTaskNotification(user.id, data.title, taskRef.id, "assigned")
+          );
+
+        await Promise.all(notificationPromises);
       } else {
+        // For existing tasks, find assignment changes
+        const previousAssignments = initialData?.assignedUsers || [];
+        const currentAssignments = assignedUsers;
+
+        // Find newly assigned users
+        const newlyAssigned = currentAssignments.filter(
+          (user) => !previousAssignments.some((u) => u.id === user.id)
+        );
+
+        // Find removed users
+        const removedUsers = previousAssignments.filter(
+          (user) => !currentAssignments.some((u) => u.id === user.id)
+        );
+
+        // Update task document
         await updateDoc(
           doc(FIREBASE_DB, "projects", projectId as string, "tasks", taskId),
           taskData
         );
+
+        // Notify newly assigned users (except current user)
+        const assignmentPromises = newlyAssigned
+          .filter((u) => u.id !== user?.uid)
+          .map((user) =>
+            addTaskNotification(user.id, data.title, taskId, "assigned")
+          );
+
+        // Notify removed users (except current user)
+        const removalPromises = removedUsers
+          .filter((u) => u.id !== user?.uid)
+          .map((user) =>
+            addTaskNotification(user.id, data.title, taskId, "removed")
+          );
+
+        await Promise.all([...assignmentPromises, ...removalPromises]);
       }
+
       closeModal();
     } catch (error) {
       console.error("Failed to save task:", error);

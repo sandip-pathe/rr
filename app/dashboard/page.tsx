@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { useRouter } from "next/navigation";
 import Layout from "../../components/Layout";
-import DefaultPage from "./activity/page";
 import Spiner from "@/components/Spiner";
+import InnovationDashboard from "./activity/page";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -26,7 +26,7 @@ const Dashboard = () => {
   }
   return (
     <Layout>
-      <DefaultPage />
+      <InnovationDashboard />
     </Layout>
   );
 };

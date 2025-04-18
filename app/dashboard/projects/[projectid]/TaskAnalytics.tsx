@@ -21,7 +21,7 @@ interface Task {
   dueDate?: Date;
   completed: boolean;
   stageId: string | null;
-  assignedUsers: { id: string; name: string }[];
+  assignedUsers: string[]; // Changed to string array of user IDs
   createdAt: string;
 }
 
@@ -60,7 +60,7 @@ export function ProjectTasksAnalytics({
       try {
         setLoading(true);
 
-        // Fetch stages first
+        // Fetch stages
         const stagesRef = collection(FIREBASE_DB, "stages");
         const stagesSnapshot = await getDocs(stagesRef);
         const stagesData = stagesSnapshot.docs.map((doc) => ({
@@ -69,24 +69,28 @@ export function ProjectTasksAnalytics({
         })) as TaskStage[];
         setStages(stagesData);
 
-        // Fetch tasks based on user role
+        // Fetch tasks
         const tasksRef = collection(FIREBASE_DB, `projects/${projectId}/tasks`);
         let tasksQuery = query(tasksRef);
 
         if (projectRole === "member" && userId) {
           tasksQuery = query(
             tasksRef,
-            where("assignedUsers", "array-contains", { id: userId })
+            where("assignedUsers", "array-contains", userId)
           );
         }
 
         const tasksSnapshot = await getDocs(tasksQuery);
-        const tasksData = tasksSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          dueDate: doc.data().dueDate?.toDate(),
-          createdAt: doc.data().createdAt?.toDate().toLocaleString() || "N/A",
-        })) as Task[];
+        const tasksData = tasksSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            dueDate: data.dueDate,
+            createdAt: data.createdAt?.toDate().toLocaleString() || "N/A",
+            assignedUsers: data.assignedUsers || [], // Ensure array exists
+          } as Task;
+        });
 
         setTasks(tasksData);
       } catch (error) {
@@ -131,32 +135,31 @@ export function ProjectTasksAnalytics({
     > = {};
 
     tasks.forEach((task) => {
-      task.assignedUsers.forEach((user) => {
-        if (!userStats[user.id]) {
-          const userDetails = adminDetails.find(
-            (admin) => admin.id === user.id
-          ) ||
-            memberDetails.find((member) => member.id === user.id) || {
-              name: user.name,
-            };
-          userStats[user.id] = {
-            id: user.id,
+      task.assignedUsers.forEach((userId) => {
+        if (!userStats[userId]) {
+          const userDetails = [...adminDetails, ...memberDetails].find(
+            (user) => user.id === userId
+          ) || { id: userId, name: "Unknown User" };
+
+          userStats[userId] = {
+            id: userId,
             name: userDetails.name,
+            photoURL: userDetails.avatar,
             total: 0,
             completed: 0,
             overdue: 0,
           };
         }
 
-        userStats[user.id].total++;
+        userStats[userId].total++;
         if (task.completed) {
-          userStats[user.id].completed++;
+          userStats[userId].completed++;
         } else if (
           task.dueDate &&
           new Date(task.dueDate) < new Date() &&
           !task.completed
         ) {
-          userStats[user.id].overdue++;
+          userStats[userId].overdue++;
         }
       });
     });
@@ -302,9 +305,7 @@ export function ProjectTasksAnalytics({
                 <div>
                   <div className="font-medium">{task.title}</div>
                   <div className="text-sm text-gray-500">
-                    {task.dueDate
-                      ? `Due: ${task.dueDate.toLocaleDateString()}`
-                      : "No due date"}
+                    {task.dueDate ? `Due: ${task?.dueDate}` : "No due date"}
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -326,13 +327,13 @@ export function ProjectTasksAnalytics({
                   <div className="flex -space-x-2">
                     {task.assignedUsers.slice(0, 2).map((user) => {
                       const userDetails = adminDetails.find(
-                        (admin) => admin.id === user.id
+                        (admin) => admin.id === user
                       ) ||
-                        memberDetails.find(
-                          (member) => member.id === user.id
-                        ) || { name: user.name };
+                        memberDetails.find((member) => member.id === user) || {
+                          name: user,
+                        };
                       return (
-                        <TooltipProvider key={user.id}>
+                        <TooltipProvider key={user}>
                           <Tooltip>
                             <TooltipTrigger>
                               <Avatar className="h-6 w-6 border-2 border-white">

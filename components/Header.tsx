@@ -26,33 +26,37 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-[#0b0b0A] text-white w-screen h-12 fixed z-10 flex-row flex justify-between pl-4 pr-4 border-b border-[#1f1f1e]">
-      <div className="heading p-1 ml-20">
-        <Image
-          src="/assets/icons/logow.svg"
-          height={1000}
-          width={1000}
-          alt="logo"
-          className="h-10 w-fit"
-        />
+    <header className="bg-[#0b0b0A] text-white w-screen h-12 fixed z-10 flex items-center justify-between px-4 border-b border-[#1f1f1e]">
+      <div className="flex items-center">
+        <div className="heading p-1 lg:ml-20">
+          <Image
+            src="/assets/icons/logow.svg"
+            height={1000}
+            width={1000}
+            alt="logo"
+            className="h-10 w-fit"
+          />
+        </div>
+
+        {/* Hidden on mobile, shown on medium and larger */}
+        <div className="hidden md:block md:top-3 md:left-1/4 md:ml-4">
+          {!isVisible && heading && (
+            <div className="text-lg font-semibold line-clamp-1 text-gray-300">
+              {heading}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="top-3 fixed left-1/4">
-        {!isVisible && heading && (
-          <div className="absolute w-40 transform -translate-x-1/2 text-lg font-semibold line-clamp-1 text-gray-300">
-            {heading}
-          </div>
-        )}
-      </div>
-
+      {/* Search bar - hidden on mobile, shown on large screens */}
       <Input
-        className="w-96 h-8 m-2 bg-[#1f1f1e] text-white"
+        className="hidden lg:block w-96 h-8 bg-[#1f1f1e] text-white"
         placeholder="Search (Alt+Shift+E)"
       />
 
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Avatar className="h-8 w-8 m-2">
+          <Avatar className="h-8 w-8">
             <AvatarImage src="https://github.com/shadcn.png" />
             <AvatarFallback>CN</AvatarFallback>
           </Avatar>
@@ -72,7 +76,7 @@ const Header = () => {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              router.push("dashboard/me");
+              router.push("/dashboard/me");
             }}
           >
             Profile

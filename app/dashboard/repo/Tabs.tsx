@@ -32,11 +32,6 @@ const tabs = [
     icon: <FiCodesandbox className="h-4 w-4" />,
   },
   {
-    name: "Opportunities",
-    path: "/dashboard/repo/opportunities",
-    icon: <FiMic className="h-4 w-4" />,
-  },
-  {
     name: "Global Projects",
     path: "/dashboard/repo/global",
     icon: <FiGlobe className="h-4 w-4" />,

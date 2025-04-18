@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Project, Comment } from "@/types/project";
 import { ProjectTasksAnalytics } from "./TaskAnalytics";
+import { useToast } from "@/hooks/use-toast";
 
 type ProjectRole = "admin" | "member" | "none";
 
@@ -89,6 +90,7 @@ export default function ProjectDetails() {
   const [showPrivateComments, setShowPrivateComments] = useState(false);
   const { user, name } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const adminUsers: User[] = (project?.admins ?? []).map((adminId) => ({
     id: adminId,
@@ -213,6 +215,10 @@ export default function ProjectDetails() {
       })) as Comment[];
 
       setProject({ ...project, comments: updatedComments });
+      toast({
+        title: "Added Comment",
+        description: "Your comment has been added successfully.",
+      });
     } catch (error) {
       console.error("Error adding comment:", error);
     }
@@ -222,8 +228,10 @@ export default function ProjectDetails() {
     if (!user?.uid || !project) return;
 
     try {
-      // Implement your join request logic here
-      alert("Join request sent to project admins");
+      toast({
+        title: "Request Sent",
+        description: "Your request to join the project has been sent.",
+      });
     } catch (error) {
       console.error("Error sending join request:", error);
     }
@@ -236,20 +244,15 @@ export default function ProjectDetails() {
   const filteredComments = () => {
     if (!project?.comments) return [];
 
-    // Show all comments to members and admins
-    if (userRole !== "none") {
-      if (showPrivateComments) {
-        return project.comments;
-      }
-      return project.comments.filter((comment) => comment.isPublic);
+    // For admin/member, show all or filtered based on toggle
+    if (userRole === "admin" || userRole === "member") {
+      return showPrivateComments
+        ? project.comments
+        : project.comments.filter((comment) => comment.isPublic);
     }
 
-    // For non-members, only show public comments if project is public
-    if (project.isPublic) {
-      return project.comments.filter((comment) => comment.isPublic);
-    }
-
-    return [];
+    // For none role, only show public comments if project is public
+    return project.comments.filter((comment) => comment.isPublic);
   };
 
   if (loading) {
@@ -317,24 +320,15 @@ export default function ProjectDetails() {
                     <h3 className="font-medium mb-2">Admins</h3>
                     <div className="flex flex-wrap gap-3">
                       {Object.entries(adminUsers).map(([id, user]) => (
-                        <TooltipProvider key={id}>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <div className="flex items-center space-x-2">
-                                <Avatar>
-                                  <AvatarImage src={user.avatar} />
-                                  <AvatarFallback>
-                                    {getInitials(user.name)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>{user.name}</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{user.id}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <div key={id} className="flex items-center space-x-2">
+                          <Avatar>
+                            <AvatarImage src={user.avatar} />
+                            <AvatarFallback>
+                              {getInitials(user.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{user.name}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -371,7 +365,8 @@ export default function ProjectDetails() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Comments</CardTitle>
-                  {userRole !== "none" && (
+                  {/* Only show toggle button for admin/member */}
+                  {(userRole === "admin" || userRole === "member") && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -394,7 +389,10 @@ export default function ProjectDetails() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(userRole !== "none" || project.isPublic) && (
+                  {/* Show comment input for everyone if project is public, or for members/admins */}
+                  {(userRole === "admin" ||
+                    userRole === "member" ||
+                    userRole === "none") && (
                     <div className="space-y-2">
                       <Input
                         placeholder="Add a comment..."
@@ -410,7 +408,6 @@ export default function ProjectDetails() {
                             onChange={() =>
                               setShowPublicComment(!showPublicComment)
                             }
-                            disabled={userRole === "none" && !project.isPublic}
                           />
                           <label htmlFor="public-comment">Public comment</label>
                         </div>
@@ -425,6 +422,7 @@ export default function ProjectDetails() {
                     </div>
                   )}
 
+                  {/* Show comments */}
                   {filteredComments().length > 0 ? (
                     <div className="space-y-4">
                       {filteredComments().map((comment) => (
@@ -518,14 +516,16 @@ export default function ProjectDetails() {
                   </Button>
                   {userRole === "none" && project.isPublic && (
                     <Button onClick={handleJoinRequest} className="w-full">
-                      <FaUsers className="mr-2" /> Join Project
+                      <FaUsers className="mr-2" /> Request To Join Project
                     </Button>
                   )}
                 </div>
               </CardContent>
             </Card>
           </div>
-          {userRole === "admin" && (
+        </div>
+        {userRole === "admin" && (
+          <div className="mt-8">
             <ProjectTasksAnalytics
               projectId={project.id}
               adminDetails={adminUsers}
@@ -533,8 +533,8 @@ export default function ProjectDetails() {
               projectRole={userRole}
               userId={user?.uid}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

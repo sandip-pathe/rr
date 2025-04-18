@@ -76,7 +76,6 @@ export default function MessagesLayout({ children }: PropsWithChildren) {
             onToggleMute={() => {}}
           />
         </div>
-        <NotificationTester />
         <div className="w-2/3 overflow-y-auto scrollbar-hide bg-[#1e1e1e]">
           {children}
         </div>

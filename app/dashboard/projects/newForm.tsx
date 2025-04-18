@@ -24,6 +24,8 @@ import Spiner from "@/components/Spiner";
 import { generateAITasks } from "./helper";
 import { FaDeleteLeft } from "react-icons/fa6";
 import { FormFieldType } from "@/enum/FormFieldTypes";
+import { addProjectNotification } from "../activity/AddNotification";
+import { useAuth } from "@/app/auth/AuthContext";
 
 interface User {
   id: string;
@@ -46,11 +48,12 @@ interface FormValues {
   createTasksWithAI: boolean;
 }
 
-interface ProjectDetails {
+export interface ProjectDetails {
   title: string;
   description: string;
   category: string;
   existingSkills: string[];
+  dueDate?: Date | undefined;
 }
 
 const skills = [
@@ -75,6 +78,7 @@ const skills = [
 ];
 
 const ProjectForm = ({ onClick }: any) => {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const projectId = searchParams.get("projectId");
   const isNew = projectId == "new";
@@ -83,7 +87,9 @@ const ProjectForm = ({ onClick }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [taskCount, setTaskCount] = useState("3");
   const [tasks, setTasks] = useState<any[]>([]);
-  const [newProjectId, setNewProjectId] = useState<string | null>(null);
+  const [reasoning, setReasoning] = useState("");
+  const [hasGeneratedSuggestions, setHasGeneratedSuggestions] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -153,31 +159,39 @@ const ProjectForm = ({ onClick }: any) => {
     try {
       let projectRef;
       const newProjectId = !isNew ? projectId : generateProjectId(data.title);
-      setNewProjectId(newProjectId);
       projectRef = doc(FIREBASE_DB, "projects", newProjectId!);
+
+      // Prepare member and admin details
       const memberDetails = data.members.reduce((acc: any, userId: string) => {
         const user = users.find((u) => u.id === userId);
         if (user) acc[userId] = user.name;
         return acc;
       }, {});
+
       const adminDetails = data.admins.reduce((acc: any, userId: string) => {
         const user = users.find((u) => u.id === userId);
         if (user) acc[userId] = user.name;
         return acc;
       }, {});
+
       const projectData = {
         ...data,
         members: Object.keys(memberDetails),
         admins: Object.keys(adminDetails),
         memberDetails,
         adminDetails,
+        isPublic,
         createdAt: !isNew ? undefined : serverTimestamp(),
       };
+
+      // Save project data
       if (!isNew) {
         await updateDoc(projectRef, projectData);
       } else {
         await setDoc(projectRef, projectData);
       }
+
+      // Update user projects
       const updateUserProjects = async (userIds: string[]) => {
         const batchUpdates = userIds.map(async (userId) => {
           const userRef = doc(FIREBASE_DB, "users", userId);
@@ -187,8 +201,28 @@ const ProjectForm = ({ onClick }: any) => {
         });
         await Promise.all(batchUpdates);
       };
-      await updateUserProjects(Object.keys(memberDetails));
-      await updateUserProjects(Object.keys(adminDetails));
+
+      // Get all assigned users (members + admins) excluding current user
+      const allAssignedUsers = [
+        ...Object.keys(memberDetails),
+        ...Object.keys(adminDetails),
+      ].filter((id) => id !== user?.uid);
+
+      // Update projects for all assigned users
+      await updateUserProjects(allAssignedUsers);
+
+      // Send notifications to all assigned users
+      const notificationPromises = allAssignedUsers.map((userId) =>
+        addProjectNotification(
+          userId,
+          data.title,
+          newProjectId!,
+          !isNew ? "Project updated" : "You've been added to a new project"
+        )
+      );
+
+      await Promise.all(notificationPromises);
+
       console.log("✅ Project saved successfully");
       await handleSubmitTasks(newProjectId as string);
       console.log("✅ Tasks saved successfully");
@@ -200,13 +234,23 @@ const ProjectForm = ({ onClick }: any) => {
     }
   };
 
-  const handleGenerateTasks = async () => {
+  const handleGenerateTasks = async (isRegenerate = false) => {
+    if (
+      isRegenerate &&
+      !confirm("Regenerate tasks? This will replace current tasks.")
+    ) {
+      return;
+    }
+    setIsLoading(true);
     const taskCountNum = parseInt(taskCount, 10);
     if (isNaN(taskCountNum) || taskCountNum <= 0) {
       alert("Please enter a valid number of tasks.");
       return;
     }
-    setIsLoading(true);
+    if (isRegenerate) {
+      setTasks([]);
+      setReasoning("");
+    }
     try {
       const formValues = form.getValues();
       const projectDetails: ProjectDetails = {
@@ -214,21 +258,26 @@ const ProjectForm = ({ onClick }: any) => {
         description: formValues.description,
         category: formValues.category,
         existingSkills: formValues.skills || [],
+        dueDate: formValues.dueDate,
       };
 
       const aiSuggestions = await generateAITasks(projectDetails, taskCountNum);
 
       // Update tasks
-      setTasks(aiSuggestions.tasks);
+      const tasksWithIds = aiSuggestions.tasks.map((task) => ({
+        ...task,
+        id: crypto.randomUUID(),
+        dueDate: new Date(task.dueDate),
+        stageId: "1-unassigned",
+      }));
 
-      // Update form with suggestions
+      setTasks(tasksWithIds);
+      setReasoning(aiSuggestions.reasoning);
+
+      // Rest of your handling remains the same
       form.setValue("skills", [
         ...formValues.skills,
         ...aiSuggestions.suggestedSkills,
-      ]);
-      form.setValue("members", [
-        ...formValues.members,
-        ...aiSuggestions.suggestedMembers,
       ]);
 
       // Update due date if not set
@@ -361,7 +410,12 @@ const ProjectForm = ({ onClick }: any) => {
               name="category"
               label="Category"
               placeholder="Select category"
-              options={["Research", "Major", "Minor", "Other"]}
+              options={[
+                "Research Project",
+                "Major Project",
+                "Mini Project",
+                "Other",
+              ]}
             />
             <CustomFormField
               control={form.control}
@@ -380,7 +434,8 @@ const ProjectForm = ({ onClick }: any) => {
               allowNewOptions={false}
               name="skills"
               label="Add skills, tools, or qualifications required"
-              placeholder="Select multiple admins"
+              placeholder="Select skills or tools"
+              optionKey="id"
               options={skills}
             />
             <CustomFormField
@@ -395,28 +450,57 @@ const ProjectForm = ({ onClick }: any) => {
               optionLabel="name"
             />
             {isNew && (
-              <div className="flex items-center space-x-4">
-                <input
-                  type="number"
-                  value={taskCount}
-                  onChange={(e) => setTaskCount(e.target.value)}
-                  className="w-16 p-2 border rounded-md"
-                  min="2"
-                  max="50"
-                  placeholder="2-50"
-                />
-                <Button
-                  type="button"
-                  onClick={handleGenerateTasks}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Generating..." : "Generate AI Tasks"}
-                </Button>
-              </div>
+              <>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="public-comment"
+                    checked={isPublic}
+                    onChange={() => setIsPublic(!isPublic)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="public-comment">Mark Public</label>
+                  <span className="text-sm text-gray-500">
+                    Anyone with the link can view this project, request to join
+                  </span>
+                </div>
+                <div className="flex items-center space-x-4 mb-4">
+                  <input
+                    type="number"
+                    value={taskCount}
+                    onChange={(e) => setTaskCount(e.target.value)}
+                    className="w-16 p-2 border rounded-md"
+                    min="2"
+                    max="50"
+                    placeholder="2-50"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      handleGenerateTasks(hasGeneratedSuggestions);
+                      setHasGeneratedSuggestions(true);
+                    }}
+                    disabled={isLoading}
+                    variant={hasGeneratedSuggestions ? "outline" : "default"}
+                  >
+                    {isLoading
+                      ? "Generating..."
+                      : hasGeneratedSuggestions
+                      ? "Regenerate Tasks"
+                      : "Generate AI Tasks"}
+                  </Button>
+                </div>
+              </>
             )}
+
             {tasks.length > 0 && (
               <>
-                <h3 className="font-bold mb-2">Generated Tasks</h3>
+                {reasoning && (
+                  <div className="text-sm text-gray-400 mb-2 p-2 bg-gray-800 rounded">
+                    <strong>AI Reasoning:</strong> {reasoning}
+                  </div>
+                )}
+                <h3 className="font-bold mb-2">Project Tasks</h3>
                 <table className="w-full border-collapse border border-gray-700 rounded-sm">
                   <thead>
                     <tr className="bg-gray-800 text-white">

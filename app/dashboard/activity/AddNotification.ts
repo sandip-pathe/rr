@@ -66,12 +66,52 @@ export const addProjectNotification = async (
   userId: string,
   projectName: string,
   projectId: string,
-  action: string
+  action: "created" | "updated" | "added" | "invited" | string
 ): Promise<void> => {
-  await addNotification(
-    userId,
-    `${action} in project "${projectName}"`,
-    projectId,
-    "project"
-  );
+  let message = "";
+
+  switch (action.toLowerCase()) {
+    case "created":
+      message = `New project "${projectName}" has been created`;
+      break;
+    case "updated":
+      message = `Project "${projectName}" has been updated`;
+      break;
+    case "added":
+    case "invited":
+      message = `You've been added to project "${projectName}"`;
+      break;
+    default:
+      message = `${action} in project "${projectName}"`;
+  }
+
+  await addNotification(userId, message, projectId, "project");
+};
+
+export const addTaskNotification = async (
+  userId: string,
+  taskTitle: string,
+  taskId: string,
+  action: "created" | "updated" | "assigned" | "completed" | string
+): Promise<void> => {
+  let message = "";
+
+  switch (action.toLowerCase()) {
+    case "created":
+      message = `New task "${taskTitle}" has been created`;
+      break;
+    case "updated":
+      message = `Task "${taskTitle}" has been updated`;
+      break;
+    case "assigned":
+      message = `You've been assigned to task "${taskTitle}"`;
+      break;
+    case "completed":
+      message = `Task "${taskTitle}" has been completed`;
+      break;
+    default:
+      message = `${action} for task "${taskTitle}"`;
+  }
+
+  await addNotification(userId, message, taskId, "task");
 };

@@ -6,23 +6,14 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/Modal";
 import EditMainUserComponent from "./EditMainUserComponent";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PeopleProfileCard from "./UserProfile";
-import ResearchWork from "./ResearchWork";
 import AddResearch from "./AddResearch";
 import { getDoc, doc } from "firebase/firestore";
 import { FIREBASE_DB } from "@/FirebaseConfig";
 import { useAuth } from "@/app/auth/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   FiExternalLink,
   FiGithub,
@@ -39,6 +30,10 @@ import {
 import { MdScience, MdBusinessCenter } from "react-icons/md";
 import ProfileStats from "./Stats";
 import { useSearchParams } from "next/navigation";
+import { ResearchTab } from "./ResearchTab";
+import { SettingsTab } from "./SettingsTab";
+import { StartupsTab } from "./StartupTab";
+import { ProjectsTab } from "./ProjectTab";
 
 interface UserProfile {
   name: string;
@@ -97,6 +92,7 @@ interface UserProfile {
   patents?: number;
   researchInterests?: string[];
 }
+
 type FilterType =
   | "overview"
   | "research"
@@ -150,7 +146,7 @@ const UserProfileComponent = () => {
     fetchUserProfile();
   }, [user]);
 
-  if (isLoading)
+  if (isLoading || !userProfile)
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -474,498 +470,30 @@ const UserProfileComponent = () => {
               </div>
             </TabsContent>
 
-            {/* Research Tab */}
             <TabsContent value="research" className="mt-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <MdScience /> Research Works
-                </h2>
-                <Button onClick={() => setIsModal2Open(true)} className="gap-2">
-                  <MdScience size={18} /> Add Research
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  {user && <ResearchWork userId={userProfile.uid} />}
-                </div>
-
-                {/* Right Column for Research Statistics and Collaborators */}
-                <div className="space-y-6">
-                  <Card className="bg-[#252525] border-0">
-                    <CardHeader>
-                      <CardTitle>Research Statistics</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-gray-400 mb-1">
-                            Citations Growth
-                          </p>
-                          <div className="h-[150px] bg-white/5 rounded-lg flex items-center justify-center">
-                            <p className="text-gray-400">
-                              Chart would display here
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-white/5 p-3 rounded-lg">
-                            <p className="text-xl font-bold">42</p>
-                            <p className="text-xs text-gray-400">
-                              Total Citations
-                            </p>
-                          </div>
-                          <div className="bg-white/5 p-3 rounded-lg">
-                            <p className="text-xl font-bold">12</p>
-                            <p className="text-xs text-gray-400">h-index</p>
-                          </div>
-                          <div className="bg-white/5 p-3 rounded-lg">
-                            <p className="text-xl font-bold">8</p>
-                            <p className="text-xs text-gray-400">i10-index</p>
-                          </div>
-                          <div className="bg-white/5 p-3 rounded-lg">
-                            <p className="text-xl font-bold">24</p>
-                            <p className="text-xs text-gray-400">
-                              Publications
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Top Collaborators */}
-                  <Card className="bg-[#252525] border-0">
-                    <CardHeader>
-                      <CardTitle>Top Collaborators</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {userProfile.coAuthors &&
-                        userProfile.coAuthors.length > 0 ? (
-                          userProfile.coAuthors.map((author, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-3"
-                            >
-                              <Avatar className="w-10 h-10">
-                                <AvatarFallback className="bg-primary/10 text-primary">
-                                  {author?.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">{author}</p>
-                                <p className="text-sm text-gray-400">
-                                  5 joint publications
-                                </p>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-gray-400">No collaborators yet</p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+              <ResearchTab
+                userId={userProfile.uid}
+                onAddResearch={() => setIsModal2Open(true)}
+                coAuthors={userProfile.coAuthors}
+              />
             </TabsContent>
 
-            {/* Projects Tab */}
             <TabsContent value="projects" className="mt-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <FaChalkboardTeacher /> Academic Projects
-                </h2>
-                <Button className="gap-2">
-                  <FaChalkboardTeacher size={18} /> Add Project
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {userProfile.academicProjects &&
-                (userProfile.academicProjects ?? []).length > 0 ? (
-                  (userProfile.academicProjects ?? []).map((project, index) => (
-                    <Card
-                      key={index}
-                      className="bg-[#252525] border-0 hover:bg-[#2e2e2d] transition"
-                    >
-                      <CardHeader>
-                        <CardTitle>{project.title}</CardTitle>
-                        <CardDescription>{project.year}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm line-clamp-3">
-                          {project.description}
-                        </p>
-                        {project.collaborators.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-sm text-gray-400 mb-1">
-                              Collaborators
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {project.collaborators
-                                .slice(0, 3)
-                                .map((collab, i) => (
-                                  <Badge key={i} variant="outline">
-                                    {collab}
-                                  </Badge>
-                                ))}
-                              {project.collaborators.length > 3 && (
-                                <Badge variant="outline">
-                                  +{project.collaborators.length - 3} more
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                      <CardFooter>
-                        {project.link && (
-                          <a
-                            href={project.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Button variant="ghost" size="sm" className="gap-2">
-                              <FiExternalLink size={14} /> View Project
-                            </Button>
-                          </a>
-                        )}
-                      </CardFooter>
-                    </Card>
-                  ))
-                ) : (
-                  <Card className="col-span-full bg-[#252525] border-0">
-                    <CardContent className="flex flex-col items-center justify-center p-8 text-center">
-                      <FaChalkboardTeacher className="text-4xl text-gray-400 mb-4" />
-                      <h3 className="text-xl font-medium mb-2">
-                        No Projects Yet
-                      </h3>
-                      <p className="text-gray-400 mb-4">
-                        Add your academic projects to showcase your work and
-                        collaborations
-                      </p>
-                      <Button
-                        className="gap-2"
-                        onClick={() => setIsModal2Open(true)}
-                      >
-                        <FaChalkboardTeacher size={18} /> Add Your First Project
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+              <ProjectsTab onAddProject={() => setIsModal2Open(true)} />
             </TabsContent>
 
-            {/* Startups Tab */}
             <TabsContent value="startups" className="mt-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <MdBusinessCenter /> Startup Ventures
-                </h2>
-                <Button className="gap-2">
-                  <MdBusinessCenter size={18} /> Add Startup
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {userProfile.startupProjects &&
-                (userProfile.startupProjects ?? []).length > 0 ? (
-                  (userProfile.startupProjects ?? []).map((startup, index) => (
-                    <Card
-                      key={index}
-                      className="bg-[#252525] border-0 hover:bg-[#2e2e2d] transition"
-                    >
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle>{startup.name}</CardTitle>
-                            <CardDescription>
-                              Founded in {startup.foundedYear}
-                            </CardDescription>
-                          </div>
-                          <Badge
-                            variant={
-                              startup.status === "active"
-                                ? "default"
-                                : startup.status === "inactive"
-                                ? "secondary"
-                                : "outline"
-                            }
-                          >
-                            {startup.status}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm">{startup.description}</p>
-                      </CardContent>
-                      <CardFooter>
-                        {startup.website && (
-                          <a
-                            href={startup.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Button variant="ghost" size="sm" className="gap-2">
-                              <FiExternalLink size={14} /> Visit Website
-                            </Button>
-                          </a>
-                        )}
-                      </CardFooter>
-                    </Card>
-                  ))
-                ) : (
-                  <Card className="col-span-full bg-[#252525] border-0">
-                    <CardContent className="flex flex-col items-center justify-center p-8 text-center">
-                      <MdBusinessCenter className="text-4xl text-gray-400 mb-4" />
-                      <h3 className="text-xl font-medium mb-2">
-                        No Startup Ventures Yet
-                      </h3>
-                      <p className="text-gray-400 mb-4">
-                        Add your startup projects to showcase your
-                        entrepreneurial work
-                      </p>
-                      <Button className="gap-2">
-                        <MdBusinessCenter size={18} /> Add Your First Startup
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+              <StartupsTab
+                startupProjects={userProfile.startupProjects || []}
+                onAddStartup={() => setIsModal2Open(true)}
+              />
             </TabsContent>
 
-            {/* Settings Tab */}
             <TabsContent value="settings" className="mt-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <Card className="bg-[#252525] border-0">
-                    <CardHeader>
-                      <CardTitle>University Settings</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        <div>
-                          <h3 className="font-medium mb-3">Privacy Settings</h3>
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p>Profile Visibility</p>
-                                <p className="text-sm text-gray-400">
-                                  Control who can see your profile
-                                </p>
-                              </div>
-                              <select
-                                defaultValue={
-                                  userProfile.universitySettings?.privacy ||
-                                  "public"
-                                }
-                                className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm"
-                              >
-                                <option value="public">Public</option>
-                                <option value="university-only">
-                                  University Only
-                                </option>
-                                <option value="private">Private</option>
-                              </select>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p>Research Visibility</p>
-                                <p className="text-sm text-gray-400">
-                                  Control who can see your research works
-                                </p>
-                              </div>
-                              <select
-                                defaultValue={
-                                  userProfile.universitySettings?.privacy ||
-                                  "public"
-                                }
-                                className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm"
-                              >
-                                <option value="public">Public</option>
-                                <option value="university-only">
-                                  University Only
-                                </option>
-                                <option value="private">Private</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Separator className="bg-white/10" />
-
-                        <div>
-                          <h3 className="font-medium mb-3">
-                            Notification Preferences
-                          </h3>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="checkbox"
-                                id="emailNotifications"
-                                defaultChecked={
-                                  userProfile.universitySettings
-                                    ?.notifications ?? true
-                                }
-                                className="h-4 w-4 rounded border-white/10 bg-white/5 focus:ring-primary"
-                              />
-                              <label htmlFor="emailNotifications">
-                                Email Notifications
-                              </label>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="checkbox"
-                                id="researchUpdates"
-                                defaultChecked={true}
-                                className="h-4 w-4 rounded border-white/10 bg-white/5 focus:ring-primary"
-                              />
-                              <label htmlFor="researchUpdates">
-                                Research Updates
-                              </label>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="checkbox"
-                                id="collaborationRequests"
-                                defaultChecked={true}
-                                className="h-4 w-4 rounded border-white/10 bg-white/5 focus:ring-primary"
-                              />
-                              <label htmlFor="collaborationRequests">
-                                Collaboration Requests
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Separator className="bg-white/10" />
-
-                        <div>
-                          <h3 className="font-medium mb-3">Appearance</h3>
-                          <div className="flex gap-4">
-                            <button
-                              disabled
-                              className={`p-2 rounded-md border disabled:opacity-50 ${
-                                userProfile.universitySettings?.theme ===
-                                "light"
-                                  ? "border-primary bg-primary/10"
-                                  : "border-white/10"
-                              }`}
-                            >
-                              Light
-                            </button>
-                            <button
-                              className={`p-2 rounded-md border ${
-                                userProfile.universitySettings?.theme === "dark"
-                                  ? "border-primary bg-primary/10"
-                                  : "border-white/10"
-                              }`}
-                            >
-                              Dark
-                            </button>
-                            <button
-                              className={`p-2 rounded-md border ${
-                                userProfile.universitySettings?.theme ===
-                                "system"
-                                  ? "border-primary bg-primary/10"
-                                  : "border-white/10"
-                              }`}
-                            >
-                              System
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-end">
-                      <Button>Save Settings</Button>
-                    </CardFooter>
-                  </Card>
-                </div>
-
-                <div className="space-y-6">
-                  {/* Account Security */}
-                  <Card className="bg-[#252525] border-0">
-                    <CardHeader>
-                      <CardTitle>Account Security</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-gray-400 mb-1">
-                            Email Address
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <p>{userProfile.email}</p>
-                            <Button variant="ghost" size="sm">
-                              Change
-                            </Button>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-400 mb-1">Password</p>
-                          <div className="flex items-center justify-between">
-                            <p>••••••••</p>
-                            <Button variant="ghost" size="sm">
-                              Change
-                            </Button>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-400 mb-1">
-                            Two-Factor Authentication
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <p>Not enabled</p>
-                            <Button variant="ghost" size="sm">
-                              Enable
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Danger Zone */}
-                  <Card className="bg-[#252525] border-0 border-red-500/20">
-                    <CardHeader>
-                      <CardTitle className="text-red-500">
-                        Danger Zone
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <p className="font-medium mb-1">Deactivate Account</p>
-                          <p className="text-sm text-gray-400 mb-2">
-                            Temporarily deactivate your account
-                          </p>
-                          <Button
-                            variant="outline"
-                            className="text-red-500 border-red-500/50 hover:bg-red-500/10"
-                          >
-                            Deactivate
-                          </Button>
-                        </div>
-                        <Separator className="bg-red-500/20" />
-                        <div>
-                          <p className="font-medium mb-1">Delete Account</p>
-                          <p className="text-sm text-gray-400 mb-2">
-                            Permanently delete your account and all data
-                          </p>
-                          <Button
-                            variant="outline"
-                            className="text-red-500 border-red-500/50 hover:bg-red-500/10"
-                          >
-                            Delete Account
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+              <SettingsTab
+                email={userProfile.email}
+                universitySettings={userProfile.universitySettings}
+              />
             </TabsContent>
           </Tabs>
         </div>

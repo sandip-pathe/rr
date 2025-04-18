@@ -1,3 +1,5 @@
+import { ProjectDetails } from "./newForm";
+
 const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || "";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -5,17 +7,15 @@ console.log("API KEY:", process.env.NEXT_PUBLIC_OPENAI_API_KEY);
 
 if (!OPENAI_API_KEY) throw new Error("API Key not found!");
 
-interface ProjectDetails {
+interface Task {
   title: string;
   description: string;
-  category?: string;
-  existingSkills?: string[];
+  dueDate: string;
 }
 
 interface AISuggestions {
-  tasks: any[];
+  tasks: Task[];
   suggestedSkills: string[];
-  suggestedMembers: string[];
   recommendedDeadline: string;
   reasoning: string;
 }
@@ -28,23 +28,25 @@ export const generateAITasks = async (
   if (!OPENAI_API_KEY) {
     throw new Error("OpenAI API key is not set in the environment variables.");
   }
+
   try {
     if (!projectDetails.title || !number) {
       throw new Error("Missing required project details or number of tasks.");
     }
 
+    const today = new Date().toISOString().split("T")[0];
+    const userDueDate =
+      projectDetails.dueDate?.toISOString().split("T")[0] || "Not specified";
+
     const systemInstructions = `You are a project management AI assistant. Your task is to:
-    1. Generate relevant tasks for the project
-    2. Suggest skills required
-    3. Recommend team members based on their profiles
-    4. Estimate a realistic deadline
+    1. Generate exactly ${number} relevant tasks for the project, each with title, description, and due date
+    2. Suggest skills required for the project
+    3. Estimate a realistic deadline for the entire project
+    4. Provide reasoning for your suggestions
     
-    Consider these factors for member recommendations:
-    - Skills match with project requirements
-    - Past project experience
-    - Current workload
-    - Interests and specialties
-    - Team composition balance
+    For task due dates:
+    - Distribute them evenly between today (${today}) and the project deadline (${userDueDate})
+    - If no project deadline is specified, estimate a reasonable timeline based on the project scope
     
     For skills, consider:
     - Project title and description
@@ -52,25 +54,30 @@ export const generateAITasks = async (
     - Industry standards
     - Existing skills already listed
     
-    Format your response as a JSON object with these keys:
-    - tasks: array of task objects (title, description, dueDate)
-    - suggestedSkills: array of strings
-    - recommendedDeadline: ISO date string
-    - reasoning: brief explanation of your suggestions`;
+    Return your response as a valid JSON object with this exact structure:
+    {
+      "tasks": [
+        {
+          "title": "Task title",
+          "description": "Task description",
+          "dueDate": "YYYY-MM-DD"
+        },
+        ...
+      ],
+      "suggestedSkills": ["skill1", "skill2", ...],
+      "recommendedDeadline": "YYYY-MM-DD",
+      "reasoning": "Your explanation here"
+    }`;
 
     const prompt = `Project Details:
     Title: ${projectDetails.title}
     Description: ${projectDetails.description}
+    Today's Date: ${today}
+    User-specified Due Date: ${userDueDate}
     Category: ${projectDetails.category || "Not specified"}
     Existing Skills: ${projectDetails.existingSkills?.join(", ") || "None"}
     
-    Please generate:
-    1. Exactly ${number} tasks for this project
-    2. Suggested skills required
-    3. Recommended team members (from existing or new)
-    4. A realistic deadline based on project scope
-    
-    Return your response as a valid JSON object following the specified format.`;
+    Please generate exactly ${number} tasks with due dates distributed appropriately between today and the project deadline.`;
 
     const response = await fetch(API_URL, {
       method: "POST",
@@ -96,29 +103,29 @@ export const generateAITasks = async (
       );
     }
 
-    console.log("🤖 AI Request:", response);
-
     const data = await response.json();
     let result: AISuggestions = {
       tasks: [],
       suggestedSkills: [],
-      suggestedMembers: [],
       recommendedDeadline: "",
       reasoning: "",
     };
-    console.log("🤖 AI Response:", data);
 
     try {
       const content = data.choices[0]?.message?.content;
       if (content) {
         result = JSON.parse(content);
 
-        // Process tasks to add default fields
+        // Validate and format the response
+        if (!Array.isArray(result.tasks) || result.tasks.length !== number) {
+          throw new Error(`Expected exactly ${number} tasks`);
+        }
+
+        // Ensure all tasks have required fields
         result.tasks = result.tasks.map((task: any) => ({
-          ...task,
-          id: crypto.randomUUID(),
-          dueDate: task.dueDate ? new Date(task.dueDate) : new Date(),
-          stageId: "1-unassigned",
+          title: task.title || "Untitled task",
+          description: task.description || "",
+          dueDate: task.dueDate || new Date().toISOString().split("T")[0],
         }));
       }
     } catch (error) {
@@ -126,10 +133,9 @@ export const generateAITasks = async (
       throw new Error("Failed to parse AI response");
     }
 
-    console.log("🤖 AI Suggestions:", result);
     return result;
   } catch (error) {
-    console.error("❌ Error generating AI tasks and suggestions:", error);
+    console.error("❌ Error generating AI tasks:", error);
     throw error;
   }
 };

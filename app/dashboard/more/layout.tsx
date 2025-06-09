@@ -145,79 +145,112 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <Layout>
-      <div className="flex h-[calc(100vh-48px)]">
-        <div className="hidden md:block md:w-1/3 bg-[#1a1b1b] border-x border-gray-500 flex-col">
-          <div className="p-4 border-b border-gray-700 sticky top-0 z-10 bg-[#1a1b1b]">
-            <div className="flex flex-row items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-300">Chats</h1>
-              <MdAddComment className="text-3xl text-gray-300 cursor-pointer" />
+      <div className="flex h-[calc(100vh-48px)] bg-[#0d1117]">
+        {/* Left sidebar - Teams & People */}
+        <div className="hidden md:block md:w-1/3 border-none flex-col overflow-hidden p-4">
+          {/* Top search bar */}
+          <div className="relative mb-3 flex items-center bg-[#161b22] rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MdSearch className="text-gray-500" />
             </div>
-
-            <div className="relative mt-4">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MdSearch className="text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search Chats..."
+              className="w-full pl-10 pr-4 py-2.5 bg-[#161b22] rounded-lg text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+            />
+            <button className="p-1.5 rounded-full hover:bg-gray-700 transition">
+              <MdAddComment className="text-xl text-gray-300" />
+            </button>
+          </div>
+          {/* Teams Section (Top 2/5) */}
+          <div className="h-2/5 flex flex-col overflow-hidden">
+            <div className="p-4">
+              <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                {/* Team List */}
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center p-3 rounded-lg bg-[#161b22] hover:bg-[#1f2937] transition cursor-pointer"
+                    >
+                      <div className="relative mr-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center">
+                          <span className="font-bold text-white">T{i + 1}</span>
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-[#0d1117]"></div>
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-200">
+                          Design Team {i + 1}
+                        </h3>
+                        <p className="text-xs text-gray-500 truncate">
+                          You: Let's finalize the mockups...
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <input
-                type="text"
-                placeholder="Search chats..."
-                className="w-full pl-10 pr-4 py-2 bg-[#252525] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-            ) : (
-              <>
-                {filteredChats.length > 0 ? (
-                  <div className="mb-6 pt-2">
-                    <ul>
+          {/* People Section (Bottom 3/5) */}
+          <div className="h-3/5 flex flex-col">
+            <div className="overflow-y-auto flex-1 px-4 scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-blue-300">
+              {loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : (
+                <div className="pb-4">
+                  {filteredChats.length > 0 ? (
+                    <ul className="space-y-1.5">
                       {filteredChats.map((chat) => (
-                        <li key={chat.id} className="px-4">
+                        <li key={chat.id}>
                           <Link
                             href={`/dashboard/more/${chat.otherParticipant?.id}`}
                           >
                             <div
-                              className={`p-2 mb-2 flex flex-row items-center cursor-pointer rounded-sm shadow-sm ${
+                              className={`p-3 rounded-xl flex items-center transition-all ${
                                 pathname.includes(
                                   chat.otherParticipant?.id || ""
                                 )
-                                  ? "bg-[#303030]"
-                                  : "bg-[#252525]"
-                              } hover:bg-[#303030] transition`}
+                                  ? "bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-800/50"
+                                  : "bg-[#161b22] hover:bg-[#1f2937]"
+                              }`}
                             >
-                              <Avatar className="h-10 w-10 m-2">
-                                <AvatarImage
-                                  src={chat.otherParticipant?.avatar}
-                                />
-                                <AvatarFallback>
-                                  {chat.otherParticipant?.name
-                                    ?.charAt(0)
-                                    .toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col w-full">
-                                <div className="flex flex-row items-center justify-between">
-                                  <h2 className="text-base font-bold max-w-[70%] line-clamp-1">
+                              <div className="relative mr-3">
+                                <Avatar className="h-10 w-10 rounded-lg">
+                                  <AvatarImage
+                                    src={chat.otherParticipant?.avatar}
+                                  />
+                                  <AvatarFallback className="bg-gradient-to-br from-cyan-600 to-blue-500">
+                                    {chat.otherParticipant?.name
+                                      ?.charAt(0)
+                                      .toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {chat.otherParticipant?.isOnline && (
+                                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#161b22]"></div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-center">
+                                  <h3 className="font-medium text-gray-200 truncate">
                                     {chat.otherParticipant?.name}
-                                  </h2>
-                                  <span className="text-xs text-blue-400 line-clamp-1">
+                                  </h3>
+                                  <span className="text-xs text-gray-500 whitespace-nowrap">
                                     {chat.lastMessageAt
                                       ? getLastSeenText(chat.lastMessageAt)
                                       : ""}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                  <p className="text-sm text-gray-400 line-clamp-1 max-w-[80%]">
+                                  <p className="text-sm text-gray-500 truncate max-w-[70%]">
                                     {chat.lastMessage}
                                   </p>
                                   {chat.lastMessageSender === user?.uid && (
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-blue-500">
                                       ✓✓
                                     </span>
                                   )}
@@ -228,16 +261,18 @@ const MessagesLayout = ({ children }: { children: React.ReactNode }) => {
                         </li>
                       ))}
                     </ul>
-                  </div>
-                ) : (
-                  <div className="flex justify-center items-center h-64 text-gray-400">
-                    No chats found
-                  </div>
-                )}
-              </>
-            )}
+                  ) : (
+                    <div className="flex justify-center items-center h-64 text-gray-500">
+                      No chats found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Right section - Chat UI */}
         <div className="w-full md:w-2/3 flex flex-col h-full">{children}</div>
       </div>
     </Layout>

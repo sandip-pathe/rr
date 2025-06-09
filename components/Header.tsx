@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 const Header = () => {
   const { user, logout, loading, name, role } = useAuth();
   const router = useRouter();
-  const heading = "Research Repo Web App";
+  const heading = "CamJam";
   const isVisible = typeof window !== "undefined" && window.innerWidth < 768;
 
   const handleLogout = async () => {
@@ -26,7 +26,7 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-[#0b0b0A] text-white w-screen h-12 fixed z-10 flex items-center justify-between px-4 border-b border-[#1f1f1e]">
+    <header className="bg-[#101a23] text-white w-screen h-12 fixed z-10 flex items-center justify-between px-4 border-b border-[#1f1f1e]">
       <div className="flex items-center">
         <div className="heading p-1 lg:ml-20">
           <Image

@@ -63,8 +63,8 @@ export default function MessagesLayout({ children }: PropsWithChildren) {
 
   return (
     <Layout>
-      <div className="flex h-[calc(100vh-48px)] overflow-hidden">
-        <div className="w-1/3 min-h-screen scrollbar-hide">
+      <div className="flex h-[calc(100vh-48px)] overflow-hidden bg-[#1e1e1e]">
+        <div className="w-1/3 min-h-screen scrollbar overflow-y-auto">
           <NotificationSidebar
             notifications={notifications}
             selectedNotification={selectedNotification}
@@ -76,9 +76,7 @@ export default function MessagesLayout({ children }: PropsWithChildren) {
             onToggleMute={() => {}}
           />
         </div>
-        <div className="w-2/3 overflow-y-auto scrollbar-hide bg-[#1e1e1e]">
-          {children}
-        </div>
+        <div className="w-2/3 overflow-y-auto scrollbar-hide">{children}</div>
       </div>
     </Layout>
   );

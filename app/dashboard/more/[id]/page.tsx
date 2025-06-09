@@ -23,8 +23,12 @@ import Spiner from "@/components/Spiner";
 import { PresenceWrapper, useChatPresence } from "@/components/useStatus";
 import { addMessageNotification } from "../../activity/AddNotification";
 import { getLastSeenText } from "@/components/DateFormat";
+import { MdAdd, MdCall, MdChat, MdSend, MdVideoCall } from "react-icons/md";
+import MessageBubble from "@/components/BubbleMessage";
+import MessageInput from "@/components/MessageInput";
+import { BsThreeDotsVertical } from "react-icons/bs";
 
-interface Message {
+export interface Message {
   id: string;
   senderId: string;
   content: string;
@@ -240,43 +244,78 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full border-none bg-white/5 backdrop-blur-md">
       <PresenceWrapper />
       {participant && (
-        <header className="h-14 flex items-center p-4 border-b border-gray-700 sticky top-0 z-10 bg-[#1a1b1b]">
-          <Avatar className="h-10 w-10 mr-3">
-            <AvatarImage src={participant.avatar} />
-            <AvatarFallback>
-              {participant.name?.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+        <header className="h-16 px-5 py-3 flex items-center sticky top-0 z-10 bg-[#0d1117]/90">
+          <div className="relative mr-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={participant.avatar} />
+              <AvatarFallback className="bg-gradient-to-br from-cyan-600 to-blue-500">
+                {participant.name?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            {participant.isOnline && (
+              <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#0d1117]"></div>
+            )}
+          </div>
           <div>
-            <h2 className="text-lg font-semibold">{participant.name}</h2>
-            <p className="text-xs text-gray-400">
+            <h2 className="text-lg font-semibold text-gray-200">
+              {participant.name}
+            </h2>
+            <p className="text-xs text-gray-500">
               {participant.isOnline
-                ? "Online"
+                ? "Online now"
                 : participant.lastSeen
                 ? `Last seen ${getLastSeenText(participant.lastSeen)}`
                 : "Offline"}
             </p>
           </div>
+          <div className="ml-auto flex items-center space-x-3">
+            <MdCall
+              className="text-gray-400 hover:text-gray-300 cursor-pointer"
+              size={24}
+              onClick={() => alert("Call feature coming soon!")}
+            />
+            <MdVideoCall
+              className="text-gray-400 hover:text-gray-300 cursor-pointer"
+              size={24}
+              onClick={() => alert("Video call feature coming soon!")}
+            />
+            <BsThreeDotsVertical
+              className="text-gray-400 hover:text-gray-300 cursor-pointer"
+              size={24}
+              onClick={() => alert("More options coming soon!")}
+            />
+          </div>
         </header>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-5 bg-gradient-to-b from-[#121820] to-[#353738] scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            <p className="text-lg mb-2">No messages yet</p>
-            <p className="text-sm">Send a message to get started</p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-500">
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-8 max-w-md text-center">
+              <div className="w-16 h-16 mx-auto bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                <MdChat className="text-3xl text-gray-600" />
+              </div>
+              <h3 className="text-xl font-medium text-gray-300 mb-2">
+                No messages yet
+              </h3>
+              <p className="text-gray-500 mb-4">
+                Send your first message to start the conversation
+              </p>
+            </div>
           </div>
         ) : (
-          messages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              message={msg}
-              isCurrentUser={msg.senderId === user?.uid}
-            />
-          ))
+          <div className="space-y-4">
+            {messages.map((msg) => (
+              <MessageBubble
+                key={msg.id}
+                message={msg}
+                isCurrentUser={msg.senderId === user?.uid}
+              />
+            ))}
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -289,72 +328,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-// Extracted components for better readability
-const MessageBubble = ({
-  message,
-  isCurrentUser,
-}: {
-  message: Message;
-  isCurrentUser: boolean;
-}) => (
-  <div
-    className={`mb-4 flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
-  >
-    <div
-      className={`max-w-[75%] rounded-lg p-3 ${
-        isCurrentUser
-          ? "bg-blue-600 rounded-br-none"
-          : "bg-gray-700 rounded-bl-none"
-      }`}
-    >
-      <p>{message.content}</p>
-      <div className="flex items-center justify-end mt-1 space-x-1">
-        <span className="text-xs text-gray-300">
-          {getLastSeenText(message.timestamp)}
-        </span>
-        {isCurrentUser && (
-          <span className="text-xs">
-            {message.status === "read"
-              ? "✓✓"
-              : message.status === "delivered"
-              ? "✓"
-              : ""}
-          </span>
-        )}
-      </div>
-    </div>
-  </div>
-);
-
-const MessageInput = ({
-  value,
-  onChange,
-  onSubmit,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-}) => (
-  <form
-    onSubmit={onSubmit}
-    className="p-3 border-t border-gray-700 sticky bottom-0 bg-[#1a1b1b]"
-  >
-    <div className="flex items-center space-x-2">
-      <Input
-        type="text"
-        placeholder="Type a message..."
-        className="flex-1 bg-[#252525] rounded-lg px-4 py-2"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <Button
-        type="submit"
-        disabled={!value.trim()}
-        className="bg-blue-700 hover:bg-blue-400 text-white rounded-lg px-4 py-2"
-      >
-        Send
-      </Button>
-    </div>
-  </form>
-);

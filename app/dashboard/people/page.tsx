@@ -160,7 +160,7 @@ const PeopleCards = () => {
 
   return (
     <Layout>
-      <div className="bg-gray-900 min-h-screen p-6">
+      <div className="bg-[#1e1e1e] min-h-screen p-6">
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Sidebar - Networking Features */}

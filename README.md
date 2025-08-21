@@ -1,77 +1,145 @@
-## Project Description: "Research Repo Web App"
+# 🔬 RRWA (Research Repo Web App)
 
-This is a comprehensive web application built with Next.js, React, and TypeScript, designed as a collaborative platform for students, professors, and researchers. It functions as a specialized social network and project management tool tailored for an academic or research-oriented environment. The backend is powered by Firebase (Firestore, Authentication, and Storage), and the UI is built with Tailwind CSS and the shadcn/ui component library.
+**An AI-First Project Management & Collaboration Platform for Academia**
 
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen?style=for-the-badge&logo=vercel)](https://rrwa-rho.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+![Status](https://img.shields.io/badge/status-alpha-important?style=for-the-badge)
 
+RRWA is a full-stack platform designed to revolutionize how universities handle projects, research, and collaborations. Think of it as a powerful hybrid of LinkedIn, ResearchGate, Trello, and Reddit, tailored specifically for students, professors, and industry partners.
 
-Core Functionality:
+> **Note:** 🚧 This project is in an **Alpha** state. It is a functioning proof-of-concept with a complete feature set, but the codebase requires refactoring and polishing to be considered production-ready. We welcome contributors to help us get there!
 
-The application is structured around a central dashboard that users access after logging in. Key features include:
+## ✨ Live Demo
 
-1. Authentication and User Profiles:
+Experience the platform firsthand: **[Live Demo](https://rrwa-rho.vercel.app/)**
 
+*Please note that the demo is connected to a shared database; expect to see existing data.*
 
+---
 
-Authentication: A complete user authentication system using Firebase Auth with email and password. It includes separate pages for registration and login.
+## 🚀 Features
 
-Multi-Step Registration: After initial sign-up, users are guided through a second registration step to provide more detailed profile information like their academic degree, role (student, professor, professional), and a personal introduction.
-
-User Profiles (/dashboard/me & /dashboard/people): Each user has a detailed profile page with tabs for an overview, research work, projects, and startups. Users can edit their own profiles and view the public profiles of others. The profile also includes social links and statistics relevant to their role (e.g., publications for professors, projects for students).
-
-2. Project & Task Management:
-
-
-
-Projects (/dashboard/projects): Users can create new projects or view their ongoing and completed projects. Projects have titles, descriptions, categories, due dates, and assigned members/admins.
-
-AI-Powered Task Generation (/app/api/generateTasks): When creating a new project, users can leverage an AI feature that calls the GPT-4o model. It automatically breaks down the project title and description into a list of actionable tasks.
-
-Kanban Board (/dashboard/board): A fully functional Kanban board for managing project tasks. It uses dnd-kit for drag-and-drop functionality, allowing users to move tasks between different stages (e.g., "To Do," "In Progress," "Done"). Access is role-based: admins can see all tasks, while members only see tasks assigned to them.
-
-Task Management: Users can create, edit, and delete tasks within a project. Tasks can have titles, descriptions, due dates, and be assigned to specific team members.
-
-3. Discovery & Collaboration Hub (/dashboard/repo):
-
-This section is the central hub for discovering new information and opportunities.
+| Module | Description |
+| :--- | :--- |
+| **👤 Academic Profiles** | LinkedIn-style profiles to showcase projects, skills, and publications. |
+| **📋 Intelligent Project Mgmt** | Kanban boards, task tracking, and a prototype **AI Task Breakdown Engine**. |
+| **📚 Research Repository** | A centralized hub for papers, patents, theses, and capstone projects. |
+| **💬 Integrated Communication** | Contextual chats, threaded comments, and Reddit-style AMA sessions. |
+| **🤖 AI-Powered Suggestions** | *(Prototype)* Suggestions for team formation and research topics. |
+| **🌐 Opportunity Corner** | A marketplace for internships, RA/TA positions, and collaborations. |
 
 
+## 🛠️ Tech Stack
 
-Research Repository: A searchable feed of research papers and completed projects.
+*   **Frontend:** React, TypeScript, Context API/Hooks, CSS
+*   **Backend:** Node.js, Express.js
+*   **Database:** MongoDB, Mongoose
+*   **Authentication:** JWT
+*   **Deployment:** Vercel (Frontend), TBD (Backend)
+*   **AI/ML:** Python (Prototype phase, not in main repo)
 
-Problem Statements: A space where users can post complex problems, inviting the community to propose solutions. It includes features for showing interest and filtering by category.
+## 🤝 Why Contribute?
 
-Internship Board: A dedicated page for finding and posting internship opportunities. It includes detailed forms and filtering options for type, compensation, and status.
+This project has a powerful vision to bridge the gap between academia and industry. By contributing, you can:
+*   🛠️ Gain experience with a full-stack, feature-rich application.
+*   🤖 Work on integrating cutting-edge AI features into a real platform.
+*   🌍 Help build a tool that empowers students and researchers globally.
+*   👨‍💻 Collaborate on a project that has already received strong validation from academia and industry.
 
-Open & Global Projects: A section for discovering public projects open for collaboration. It also contains a mocked-up "Global Innovations" feature designed to search for external projects and research (currently uses dummy data).
+## 🚧 Current State & Contribution Areas
 
-4. Communication & Community Engagement:
+This project is **open source but not yet refactored** for mass contribution. This is a great opportunity for developers who enjoy tackling challenging, real-world codebases.
 
+**High-Priority Areas for Improvement:**
+*   **Code Refactoring:** Breaking down large components, improving naming conventions, and simplifying complex logic.
+*   **State Management:** Migrating from Context API to a more structured solution like Redux Toolkit or Zustand.
+*   **Styling & UI/UX:** Implementing a consistent design system (e.g., with Chakra UI, Material-UI, or Tailwind CSS).
+*   **Backend Optimization:** Refactoring controllers, improving error handling, and enhancing API security.
+*   **Documentation:** Adding JSDoc comments, contributor guidelines, and feature explanations.
+*   **Testing:** Writing unit and integration tests (currently lacking).
 
+## 📦 Getting Started (For Developers)
 
-AMA (Ask Me Anything) (/dashboard/ama): A Q&A forum where users can post questions (anonymously or publicly) with image attachments. Other users can post nested replies. A key feature here is an AI-powered conversation summarizer that uses GPT-3.5-Turbo to provide concise summaries of long discussion threads.
+### Prerequisites
 
-Real-time Chat (/dashboard/more): A private messaging feature between users. It uses Firestore's onSnapshot for real-time updates and includes a user presence system to show if a user is online or their last-seen status.
+-   **Node.js** (v16 or higher)
+-   **npm** or **yarn**
+-   **MongoDB** (A local instance or a MongoDB Atlas URI)
 
-Notifications (/dashboard/activity): A real-time activity feed that notifies users about important events, such as being added to a project, assigned a new task, or receiving a new message.
+### Installation
 
-5. Technical Architecture & Components:
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/sandip-pathe/rr.git
+    cd rr
+    ```
 
+2.  **Setup Environment Variables**
+    *   Create a `.env` file in the `server/` directory.
+    *   Add your configuration:
+    ```env
+    PORT=5000
+    MONGODB_URI=your_mongodb_connection_string_here
+    JWT_SECRET=your_super_secret_jwt_key_here
+    # Any other API keys
+    ```
 
+3.  **Install Dependencies**
+    ```bash
+    # Install server dependencies
+    cd server
+    npm install
 
-Frontend: Built with Next.js App Router. It uses a combination of Server Components for initial data fetching and Client Components for interactive UI.
+    # Install client dependencies
+    cd ../client
+    npm install
+    ```
 
-Styling: Tailwind CSS is used for styling, with a rich set of custom UI components built using shadcn/ui.
+4.  **Run the Application**
+    *   **Start the backend server:**
+        ```bash
+        cd server
+        npm run dev
+        ```
+    *   **In a new terminal, start the frontend client:**
+        ```bash
+        cd client
+        npm start
+        ```
+5.  Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-State Management: Global authentication state is managed via React's Context API (AuthContext.tsx). Local component state is managed with useState and useEffect.
+## 📖 Documentation
 
-Forms: Form handling is done with react-hook-form and zod for validation, abstracted into a reusable CustomFormField component.
+*   [API Documentation](./docs/api.md) *(To be written)*
+*   [Database Schema](./docs/schema.md) *(To be written)*
+*   [Contributing Guidelines](./CONTRIBUTING.md) *(To be written)*
 
-Areas for Improvement / Incomplete Features:
+## 👥 Contributing
 
-Security Alert: The FirebaseConfig.ts file contains hardcoded API keys and should be moved to environment variables (.env.local) immediately.
+We enthusiastically welcome contributions! Since this project is in its early open-source stages, your patience and initiative are highly valued.
 
-Global Innovation Search: This feature is currently a conceptual mock-up and requires a backend service to fetch real data from external sources like GitHub or academic APIs.
+1.  Fork the Project.
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the Branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request and clearly describe the changes you've made.
 
-File Uploads: The "Add Research" form has a placeholder for file uploads which needs to be implemented using Firebase Storage.
+Please read our (forthcoming) `CONTRIBUTING.md` guide for detailed instructions.
 
-Data Fetching: The application would benefit from more server-side data fetching to improve initial page load performance and reduce client-side loading states.
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` file for more information.
+
+## 📞 Contact
+
+Sandip Pathe - [LinkedIn: @sandippathe](https://www.linkedin.com/in/sandippathe/) - sandippathe9689@gmail.com
+
+Project Link: [https://github.com/sandip-pathe/rr](https://github.com/sandip-pathe/rr)
+
+---
+
+## 🙏 Acknowledgments
+
+*   Built as a final-year project with the team of 4 developers.
+*   Thanks to all professors and industry experts who provided valuable feedback and validation.
